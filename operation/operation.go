@@ -1,18 +1,7 @@
 package operation
 
-import "errors"
-const N int = 3
-
-type SiteId int
-
-type OpType int
-const(INS OpType = iota; DEL; UNIT)
-
-type Position int
-type Char byte
-
-type Timestamp [N]int
-
+import . "github.com/DamienAy/epflDedisABTU/timestamp"
+import . "github.com/DamienAy/epflDedisABTU/singleTypes"
 
 
 
@@ -29,90 +18,116 @@ type Operation struct {
 }
 
 // Returns the siteId where the operation o has been generated.
-func (o Operation) getId() SiteId {
+func (o *Operation) GetId() SiteId {
 	return o.id
 }
 
 // Returns the OpType of the operation o.
-func (o Operation) getOpType() OpType {
+func (o *Operation) GetOpType() OpType {
 	return o.opType
 }
 
 // Returns the Position of the operation o.
-func (o Operation) getPos() Position {
+func (o *Operation) GetPos() Position {
 	return o.position
 }
 
-/*
-Sets the positition of the operation o to the value p.
-Returns an error if the value p is negative.
- */
-func (o Operation) setPos(p Position) error {
-	if p >= 0 {
-		o.position = p
-	} else {
-		return errors.New("Position of an operation cannot be less than 0.")
-	}
-
-	return nil
+//Sets the positition of the operation o to the value p.
+func (o *Operation) SetPos(p Position) {
+	o.position = p
 }
 
 // Returns the character of the operation o.
-func (o Operation) getChar() Char {
+func (o *Operation) GetChar() Char {
 	return o.character
 }
 
 
 // Returns a slice containing the timestamps of operation o.
-func (o Operation) getV() []Timestamp {
+func (o *Operation) GetV() []Timestamp {
 	return o.v
 }
 
 // Appends the timestamp t to the timestamps slice of o.
-func (o Operation) addV(t Timestamp) {
+func (o *Operation) AddV(t Timestamp) {
 	o.v = append(o.v, t)
 }
 
 // Returns a slice containing the timestamps of operations that depend on operation o.
-func (o Operation) getDv() []Timestamp {
+func (o *Operation) GetDv() []Timestamp {
 	return o.dv
 }
 
 // Appends the Timestamp t to the timestamps slice of operations that depend on operation o.
-func (o Operation) addDv(t Timestamp) {
+func (o *Operation) AddDv(t Timestamp) {
 	o.dv = append(o.dv, t)
 }
 
 // Returns a slice containing the timestamps of operations whose effect objects tie with o.c.
-func (o Operation) getTv() []Timestamp {
+func (o *Operation) GetTv() []Timestamp {
 	return o.tv
 }
 
 // Appends the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
-func (o Operation) addTv(t Timestamp) {
+func (o *Operation) AddTv(t Timestamp) {
 	o.tv = append(o.tv, t)
 }
 
 // Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
-func (o Operation) getOv() Timestamp {
+func (o *Operation) GetOv() Timestamp {
 	return o.ov
 }
 
 // Sets the timestamp ov of the operation o to t.
-func (o Operation) setOv(t Timestamp) {
+func (o *Operation) SetOv(t Timestamp) {
 	o.ov = t
 }
 
 // Returns the timestamp of the operation that undoes o.
-func (o Operation) getUv() Timestamp {
+func (o *Operation) GetUv() Timestamp {
 	return o.ov
 }
 
 // Sets the timestamp uv of the operation o to t.
-func (o Operation) setUv(t Timestamp) {
+func (o *Operation) SetUv(t Timestamp) {
 	o.ov = t
 }
 
+// Returns true if and only if operation o1 happened before operation o2.
+func (o1 *Operation) HapenedBefore(o2 *Operation) bool {
+	for _, e1:= range o1.GetV(){
+		for _, e2:= range o2.GetV() {
+			if e1.HappenedBefore(e2) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// Returns true if and only if operation o1 is concurrent with operation o2.
+func (o1 *Operation) isConcurrentWith(o2 *Operation) bool {
+	return !(o1.HapenedBefore(o2) || o2.HapenedBefore(o1))
+}
+
+// Returns true if and only if operation o1 is smaller in effect relation order than o2.
+func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 *Operation) bool {
+	p1 := o1.position < o2.position
+	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==DEL
+	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id < o2.id
+
+	return p1 || p2 || p3
+}
+
+// Returns true if and only if operation o1 is greater in effect relation order than o2.
+func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 *Operation) bool {
+	p1 := o1.position > o2.position
+	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==INS
+	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id > o2.id
+
+	return p1 || p2 || p3
+}
 
 
 
