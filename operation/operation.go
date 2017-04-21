@@ -1,9 +1,10 @@
 package operation
 
-import . "github.com/DamienAy/epflDedisABTU/timestamp"
-import . "github.com/DamienAy/epflDedisABTU/singleTypes"
-
-
+import (
+	. "github.com/DamienAy/epflDedisABTU/singleTypes";
+	. "github.com/DamienAy/epflDedisABTU/timestamp";
+	"errors"
+)
 
 type Operation struct {
 	id SiteId
@@ -94,7 +95,7 @@ func (o *Operation) SetUv(t Timestamp) {
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
-func (o1 *Operation) HapenedBefore(o2 *Operation) bool {
+func (o1 *Operation) HapenedBefore(o2 Operation) bool {
 	for _, e1:= range o1.GetV(){
 		for _, e2:= range o2.GetV() {
 			if e1.HappenedBefore(e2) {
@@ -107,12 +108,12 @@ func (o1 *Operation) HapenedBefore(o2 *Operation) bool {
 }
 
 // Returns true if and only if operation o1 is concurrent with operation o2.
-func (o1 *Operation) isConcurrentWith(o2 *Operation) bool {
+func (o1 *Operation) isConcurrentWith(o2 Operation) bool {
 	return !(o1.HapenedBefore(o2) || o2.HapenedBefore(o1))
 }
 
 // Returns true if and only if operation o1 is smaller in effect relation order than o2.
-func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 *Operation) bool {
+func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 Operation) bool {
 	p1 := o1.position < o2.position
 	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==DEL
 	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id < o2.id
@@ -121,11 +122,26 @@ func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 *Operation) bool {
 }
 
 // Returns true if and only if operation o1 is greater in effect relation order than o2.
-func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 *Operation) bool {
+func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 Operation) bool {
 	p1 := o1.position > o2.position
 	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==INS
 	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id > o2.id
 
 	return p1 || p2 || p3
+}
+
+// Returns the inverse of the operation o. An error is returned if the operation o is unit.
+func (o *Operation) inverse() (Operation, error) {
+	if o.opType == INS {
+		inverse := Operation{opType:DEL, position:o.position, character:o.character}
+		return inverse, nil
+
+	} else if o.opType == DEL{
+		inverse := Operation{opType:INS, position:o.position, character:o.character}
+		return inverse, nil
+	} else {
+		return nil, errors.New("Computing the inverse of a unit operation.")
+	}
+
 }
 

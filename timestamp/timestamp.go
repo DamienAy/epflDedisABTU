@@ -5,7 +5,7 @@ import . "github.com/DamienAy/epflDedisABTU/singleTypes"
 
 //import "operation"
 
-type Timestamp [N]uint64
+type Timestamp [N]int
 
 // Increments the operation counter for site with id sId.
 func (t *Timestamp) Increment(siteId SiteId) {
