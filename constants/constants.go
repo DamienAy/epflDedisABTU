@@ -1,3 +1,3 @@
 package constants
 
-const N int = 3;
+const N uint8 = 3;

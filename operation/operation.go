@@ -129,5 +129,3 @@ func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 *Operation) bool {
 	return p1 || p2 || p3
 }
 
-
-
