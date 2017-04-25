@@ -5,8 +5,8 @@ import . "github.com/DamienAy/epflDedisABTU/timestamp"
 
 
 func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
-	var t1 Timestamp = [3]uint64{1, 2, 3}
-	var t2 Timestamp = [3]uint64{1, 2, 3}
+	var t1 Timestamp = [3]int{1, 2, 3}
+	var t2 Timestamp = [3]int{1, 2, 3}
 
 	if t1.HappenedBefore(t2) {
 		t.Error("Expected false")
@@ -14,9 +14,9 @@ func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
 }
 
 func TestHappenedBeforeReturnsCorrectlyWithDifferentTimestamps(t *testing.T) {
-	var t1 Timestamp = [3]uint64{1, 2, 3}
-	var t2 Timestamp = [3]uint64{4, 2, 3}
-	var t3 Timestamp = [3]uint64{1, 4, 3}
+	var t1 Timestamp = [3]int{1, 2, 3}
+	var t2 Timestamp = [3]int{4, 2, 3}
+	var t3 Timestamp = [3]int{1, 4, 3}
 
 
 	if !t1.HappenedBefore(t2) {
@@ -33,8 +33,8 @@ func TestHappenedBeforeReturnsCorrectlyWithDifferentTimestamps(t *testing.T) {
 }
 
 func TestIncrementWorks(t *testing.T) {
-	var t1 Timestamp = [3]uint64{1, 2, 3}
-	var t2 Timestamp = [3]uint64{2, 2, 3}
+	var t1 Timestamp = [3]int{1, 2, 3}
+	var t2 Timestamp = [3]int{2, 2, 3}
 
 	t1.Increment(0)
 
@@ -44,10 +44,10 @@ func TestIncrementWorks(t *testing.T) {
 }
 
 func TestIsContainedInShouldReturnCorrectly(t *testing.T) {
-	var t1 Timestamp = [3]uint64{1, 2, 3}
-	var t2 Timestamp = [3]uint64{4, 2, 3}
-	var t3 Timestamp = [3]uint64{1, 4, 3}
-	var t4 Timestamp = [3]uint64{1, 1, 3}
+	var t1 Timestamp = [3]int{1, 2, 3}
+	var t2 Timestamp = [3]int{4, 2, 3}
+	var t3 Timestamp = [3]int{1, 4, 3}
+	var t4 Timestamp = [3]int{1, 1, 3}
 
 
 	tSlice := []Timestamp{t1, t2, t3}

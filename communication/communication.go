@@ -9,21 +9,15 @@ import (
 	"errors"
 	"strconv"
 	host "github.com/libp2p/go-libp2p-host"
-
-
 	"context"
-	//"fmt"
-	//"log"
-	//"strings"
+	"strings"
 	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	inet "github.com/libp2p/go-libp2p-net"
 	ma "github.com/multiformats/go-multiaddr"
-	//"os"
-	"strings"
+	"encoding/gob"
 )
 
 type CommunicationService struct {
@@ -36,7 +30,7 @@ func check(error error) {
 	}
 }
 
-func SetupCommunicationSerice(myId int) (CommunicationService, error) {
+func SetupCommunicationService(myId int, receivingFunction func(Operation)) (CommunicationService, error) {
 	f, err := os.Open("communication.txt")
 	if err!= nil {
 		log.Fatal(err)
@@ -54,7 +48,7 @@ func SetupCommunicationSerice(myId int) (CommunicationService, error) {
 		}
 	}
 
-	address := strings.Split(addresses[i], "/ipfs/")
+	address := strings.Split(addresses[myId], "/ipfs/")
 	myIpTcpAddress := address[0]
 	peerId, err := peer.IDB58Decode(address[1]); check(err)
 
@@ -71,6 +65,17 @@ func SetupCommunicationSerice(myId int) (CommunicationService, error) {
 			host.Peerstore().AddAddr(peerId, multiAddress, pstore.PermanentAddrTTL)
 		}
 	}
+
+	host.SetStreamHandler("epflDedisABTU/Broadcast/0.0.1", func(s net.Stream) {
+		defer s.Close()
+
+		var o Operation
+
+		decoder := gob.NewDecoder(s)
+		decoder.Decode(&o)
+
+		receivingFunction(o)
+	})
 
 	return CommunicationService{host}, nil
 }
@@ -91,7 +96,15 @@ func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
 }
 
 func (c *CommunicationService) Send(o Operation) {
-	//I sent it
+	host := c.host
+	for _, peerId:= range host.Peerstore().Peers() {
+		s, err := host.NewStream(context.Background(), peerId, "epflDedisABTU/Broadcast/0.0.1"); check(err)
+		encoder := gob.NewEncoder(&s)
+		encoder.Encode(o)
+	}
 }
+
+
+
 
 

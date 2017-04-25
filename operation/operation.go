@@ -95,7 +95,7 @@ func (o *Operation) SetUv(t Timestamp) {
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
-func (o1 *Operation) HapenedBefore(o2 Operation) bool {
+func (o1 *Operation) HappenedBefore(o2 Operation) bool {
 	for _, e1:= range o1.GetV(){
 		for _, e2:= range o2.GetV() {
 			if e1.HappenedBefore(e2) {
@@ -109,7 +109,7 @@ func (o1 *Operation) HapenedBefore(o2 Operation) bool {
 
 // Returns true if and only if operation o1 is concurrent with operation o2.
 func (o1 *Operation) isConcurrentWith(o2 Operation) bool {
-	return !(o1.HapenedBefore(o2) || o2.HapenedBefore(o1))
+	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(o1))
 }
 
 // Returns true if and only if operation o1 is smaller in effect relation order than o2.
@@ -131,7 +131,7 @@ func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 Operation) bool {
 }
 
 // Returns the inverse of the operation o. An error is returned if the operation o is unit.
-func (o *Operation) inverse() (Operation, error) {
+func (o *Operation) GetInverse() (Operation, error) {
 	if o.opType == INS {
 		inverse := Operation{opType:DEL, position:o.position, character:o.character}
 		return inverse, nil
