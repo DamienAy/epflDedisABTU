@@ -18,6 +18,19 @@ type Operation struct {
 	uv Timestamp
 }
 
+func NewOperation(
+	id SiteId,
+	opType OpType,
+	position Position,
+	character Char,
+	v []Timestamp,
+	dv []Timestamp,
+	tv []Timestamp,
+	ov Timestamp,
+	uv Timestamp) Operation {
+	return Operation{id, opType, position, character, v, dv, tv, ov, uv}
+}
+
 // Returns the siteId where the operation o has been generated.
 func (o *Operation) GetId() SiteId {
 	return o.id
@@ -109,7 +122,7 @@ func (o1 *Operation) HappenedBefore(o2 Operation) bool {
 
 // Returns true if and only if operation o1 is concurrent with operation o2.
 func (o1 *Operation) isConcurrentWith(o2 Operation) bool {
-	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(o1))
+	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(*o1))
 }
 
 // Returns true if and only if operation o1 is smaller in effect relation order than o2.
@@ -140,7 +153,7 @@ func (o *Operation) GetInverse() (Operation, error) {
 		inverse := Operation{opType:INS, position:o.position, character:o.character}
 		return inverse, nil
 	} else {
-		return nil, errors.New("Computing the inverse of a unit operation.")
+		return *o, errors.New("Computing the inverse of a unit operation.")
 	}
 
 }

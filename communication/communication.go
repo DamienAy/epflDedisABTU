@@ -30,7 +30,12 @@ func check(error error) {
 	}
 }
 
-func SetupCommunicationService(myId int, receivingFunction func(Operation)) (CommunicationService, error) {
+/*
+Sets up a CommunicationService for site myId.
+All received operations will be transmitted to the receivingFunction function.
+Addresses in the communication.txt file should in the following format: /ip4/<ipv4Address>/tcp/<tcpPort>/ipfs/<ipfsId>
+ */
+func SetupCommunicationService(myId int, receivingFunction func(Operation)) (*CommunicationService, error) {
 	f, err := os.Open("communication.txt")
 	if err!= nil {
 		log.Fatal(err)
@@ -66,7 +71,7 @@ func SetupCommunicationService(myId int, receivingFunction func(Operation)) (Com
 		}
 	}
 
-	host.SetStreamHandler("epflDedisABTU/Broadcast/0.0.1", func(s net.Stream) {
+	host.SetStreamHandler("p2pPublish/epflDedisABTU/Broadcast/0.0.1", func(s net.Stream) {
 		defer s.Close()
 
 		var o Operation
@@ -77,7 +82,7 @@ func SetupCommunicationService(myId int, receivingFunction func(Operation)) (Com
 		receivingFunction(o)
 	})
 
-	return CommunicationService{host}, nil
+	return &CommunicationService{host}, nil
 }
 
 func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
@@ -98,8 +103,8 @@ func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
 func (c *CommunicationService) Send(o Operation) {
 	host := c.host
 	for _, peerId:= range host.Peerstore().Peers() {
-		s, err := host.NewStream(context.Background(), peerId, "epflDedisABTU/Broadcast/0.0.1"); check(err)
-		encoder := gob.NewEncoder(&s)
+		s, err := host.NewStream(context.Background(), peerId, "p2pPublish/epflDedisABTU/Broadcast/0.0.1"); check(err)
+		encoder := gob.NewEncoder(s)
 		encoder.Encode(o)
 	}
 }
