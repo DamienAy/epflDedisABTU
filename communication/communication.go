@@ -3,6 +3,8 @@ package communication
 import (
 	. "github.com/DamienAy/epflDedisABTU/constants"
 	. "github.com/DamienAy/epflDedisABTU/operation"
+	. "github.com/DamienAy/epflDedisABTU/singleTypes"
+	. "github.com/DamienAy/epflDedisABTU/timestamp"
 	"os"
 	"log"
 	"bufio"
@@ -74,12 +76,12 @@ func SetupCommunicationService(myId int, receivingFunction func(Operation)) (*Co
 	host.SetStreamHandler("p2pPublish/epflDedisABTU/Broadcast/0.0.1", func(s net.Stream) {
 		defer s.Close()
 
-		var o Operation
+		var publicOp publicOp
 
 		decoder := gob.NewDecoder(s)
-		decoder.Decode(&o)
+		err := decoder.Decode(&publicOp); check(err)
 
-		receivingFunction(o)
+		receivingFunction(publicOpToOperation(publicOp))
 	})
 
 	return &CommunicationService{host}, nil
@@ -102,11 +104,53 @@ func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
 
 func (c *CommunicationService) Send(o Operation) {
 	host := c.host
+	publicOp := operationToPublicOp(o)
 	for _, peerId:= range host.Peerstore().Peers() {
 		s, err := host.NewStream(context.Background(), peerId, "p2pPublish/epflDedisABTU/Broadcast/0.0.1"); check(err)
 		encoder := gob.NewEncoder(s)
-		encoder.Encode(o)
+		err = encoder.Encode(publicOp); check(err)
 	}
+}
+
+// Same type as Operation but with public fields to allow for encoding with gob.
+type publicOp struct {
+	Id SiteId
+	OpType OpType
+	Position Position
+	Character Char
+	V []Timestamp
+	Dv []Timestamp
+	Tv []Timestamp
+	Ov Timestamp
+	Uv Timestamp
+}
+
+//Transforms an Operation into a publicOp.
+func operationToPublicOp(o Operation) publicOp {
+	return publicOp{
+		o.GetId(),
+		o.GetOpType(),
+		o.GetPos(),
+		o.GetChar(),
+		o.GetV(),
+		o.GetDv(),
+		o.GetTv(),
+		o.GetOv(),
+		o.GetUv()}
+}
+
+//Transforms a publicOp into an Operation.
+func publicOpToOperation(o publicOp) Operation {
+	return NewOperation(
+		o.Id,
+		o.OpType,
+		o.Position,
+		o.Character,
+		o.V,
+		o.Dv,
+		o.Tv,
+		o.Ov,
+		o.Uv)
 }
 
 

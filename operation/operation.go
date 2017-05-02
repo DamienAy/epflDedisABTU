@@ -18,6 +18,7 @@ type Operation struct {
 	uv Timestamp
 }
 
+
 func NewOperation(
 	id SiteId,
 	opType OpType,

@@ -6,8 +6,14 @@ import (
 	"fmt"
 	. "github.com/DamienAy/epflDedisABTU/operation"
 	"log"
+	. "github.com/DamienAy/epflDedisABTU/timestamp"
 )
 
+var (
+	SV Timestamp
+	H []Operation
+	lastOp Operation
+)
 
 func main() {
 	communicationService, err := com.SetupCommunicationService(1, printOp)
@@ -31,3 +37,4 @@ func printOp(o Operation){
 	var ok string
 	fmt.Scanln(&ok)
 }
+
