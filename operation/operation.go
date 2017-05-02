@@ -6,6 +6,19 @@ import (
 	"errors"
 )
 
+type SimpleOperation struct {
+	OpType OpType
+	Character Char
+	Position Position
+}
+
+func (simpleOp *SimpleOperation) GetOperation() Operation {
+	return Operation{
+		opType: simpleOp.OpType,
+		character: simpleOp.Character,
+		position: simpleOp.Position}
+}
+
 type Operation struct {
 	id SiteId
 	opType OpType

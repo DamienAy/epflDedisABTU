@@ -7,12 +7,17 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/operation"
 	"log"
 	. "github.com/DamienAy/epflDedisABTU/timestamp"
+	"sync"
+	. "github.com/DamienAy/epflDedisABTU/singleTypes"
 )
 
 var (
+	ID SiteId
 	SV Timestamp
 	H []Operation
-	lastOp Operation
+	lastOp int
+	lock sync.Mutex
+	communicationService com.CommunicationService
 )
 
 func main() {
@@ -28,6 +33,11 @@ func main() {
 	fmt.Scanln(&ok)
 
 	//communicationService.Send(Operation{})
+}
+
+func Init(){
+	ID = 1;
+	H = make([]Operation, 0)
 }
 
 
