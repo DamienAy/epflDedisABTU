@@ -48,3 +48,9 @@ func printOp(o Operation){
 	fmt.Scanln(&ok)
 }
 
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+

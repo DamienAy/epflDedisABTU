@@ -1,18 +1,9 @@
 package main
 
 import (
-	"sync"
 	. "github.com/DamienAy/epflDedisABTU/operation"
-	. "github.com/DamienAy/epflDedisABTU/constants"
 	. "github.com/DamienAy/epflDedisABTU/singleTypes"
-	"log"
 )
-
-func check(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 
 func LocalThread(localOp SimpleOperation) {
@@ -77,15 +68,34 @@ func IntegrateL(o Operation) Operation {
 			}
 		}
 	} else {
-		var index int
-		for i, h := range H {
+		var i int
+		for index, h := range H {
 			if o.GetOv().IsContainedIn(h.GetV()) {
-				index = i
+				i = index
+				k = i + 1
 				break
 			}
 		}
+		o.AddTv(H[i].GetV()[0]) //ok to add only first ?????
+
+		for j:=k; j<=len(H); j++ {
+			H[j].SetPos(H[j].GetPos()+offset)
+		}
 	}
 
+	newH := make([]Operation, len(H)+1)
+
+	for index := range newH {
+		if index < k {
+			newH[index] = H[index]
+		} else if index == k {
+			newH[index] = o
+		} else {
+			newH[index] = H[index-1]
+		}
+	}
+
+	H = newH
 
 	return o
 }
