@@ -15,8 +15,10 @@ var (
 	ID SiteId
 	SV Timestamp
 	H []Operation
+	RB []Operation
 	lastOp int
 	lock sync.Mutex
+	RBLock sync.Mutex
 	communicationService com.CommunicationService
 )
 

@@ -22,14 +22,14 @@ func LocalThread(localOp SimpleOperation) {
 		communicationService.Send(o2)
 	} else { //undo case
 		toUndo := &(H[lastOp])
-		if len(toUndo.GetUv())!= 0 || len(toUndo.GetDv())!=0 {
+		if len(*(toUndo.GetUv()))!= 0 || len(toUndo.GetDv())!=0 {
 			return
 		} else {
 			o, err := toUndo.GetInverse(); check(err)
 			SV[ID]++
 			o.AddV(SV)
-			o.SetOv(toUndo.GetV()[0]) // Right to take the first one???
-			toUndo.SetUv(SV)
+			o.SetOv(&(toUndo.GetV()[0])) // Right to take the first one???
+			toUndo.SetUv(&SV)
 			Execute(o)
 			o2 := IntegrateL(o)
 			communicationService.Send(o2)
@@ -72,10 +72,11 @@ func IntegrateL(o Operation) Operation {
 		for index, h := range H {
 			if o.GetOv().IsContainedIn(h.GetV()) {
 				i = index
-				k = i + 1
 				break
 			}
 		}
+
+		k = i + 1
 		o.AddTv(H[i].GetV()[0]) //ok to add only first ?????
 
 		for j:=k; j<=len(H); j++ {

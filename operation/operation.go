@@ -25,9 +25,10 @@ type Operation struct {
 	position Position
 	character Char
 	v []Timestamp
+	dv []Timestamp
 	tv []Timestamp
-	ov Timestamp
-	uv Timestamp
+	ov *Timestamp
+	uv *Timestamp
 }
 
 
@@ -39,9 +40,11 @@ func NewOperation(
 	v []Timestamp,
 	dv []Timestamp,
 	tv []Timestamp,
-	ov Timestamp,
-	uv Timestamp) Operation {
-	return Operation{id, opType, position, character, v, dv, tv, ov, uv}
+	ov *Timestamp,
+	uv *Timestamp) Operation {
+	myOv := *ov
+	myUv := *uv
+	return Operation{id, opType, position, character, v, dv, tv, &myOv, &myUv}
 }
 
 // Returns the siteId where the operation o has been generated.
@@ -52,6 +55,11 @@ func (o *Operation) GetId() SiteId {
 // Returns the OpType of the operation o.
 func (o *Operation) GetOpType() OpType {
 	return o.opType
+}
+
+// Sets the type of the operation o to UNIT
+func (o *Operation) SetToUnit(){
+	o.opType = UNIT
 }
 
 // Returns the Position of the operation o.
@@ -101,23 +109,27 @@ func (o *Operation) AddTv(t Timestamp) {
 }
 
 // Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
-func (o *Operation) GetOv() Timestamp {
-	return o.ov
+func (o *Operation) GetOv() *Timestamp {
+	myOv := *(o.ov)
+	return &myOv
 }
 
 // Sets the timestamp ov of the operation o to t.
-func (o *Operation) SetOv(t Timestamp) {
-	o.ov = t
+func (o *Operation) SetOv(t *Timestamp) {
+	myOv := *t
+	o.ov = &myOv
 }
 
 // Returns the timestamp of the operation that undoes o.
-func (o *Operation) GetUv() Timestamp {
-	return o.ov
+func (o *Operation) GetUv() *Timestamp {
+	myUv := *(o.ov)
+	return &myUv
 }
 
 // Sets the timestamp uv of the operation o to t.
-func (o *Operation) SetUv(t Timestamp) {
-	o.ov = t
+func (o *Operation) SetUv(t *Timestamp) {
+	myOv := *t
+	o.ov = &myOv
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
@@ -134,12 +146,12 @@ func (o1 *Operation) HappenedBefore(o2 Operation) bool {
 }
 
 // Returns true if and only if operation o1 is concurrent with operation o2.
-func (o1 *Operation) isConcurrentWith(o2 Operation) bool {
+func (o1 *Operation) IsConcurrentWith(o2 Operation) bool {
 	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(*o1))
 }
 
 // Returns true if and only if operation o1 is smaller in effect relation order than o2.
-func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 Operation) bool {
+func (o1 *Operation) IsSmallerC(o2 Operation) bool {
 	p1 := o1.position < o2.position
 	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==DEL
 	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id < o2.id
@@ -148,7 +160,7 @@ func (o1 *Operation) IsSmallerInEffectRelationOrder(o2 Operation) bool {
 }
 
 // Returns true if and only if operation o1 is greater in effect relation order than o2.
-func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 Operation) bool {
+func (o1 *Operation) IsGreaterC(o2 Operation) bool {
 	p1 := o1.position > o2.position
 	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==INS
 	p3 := o1.position==o2.position && o1.opType==INS && o2.opType==INS && o1.id > o2.id
