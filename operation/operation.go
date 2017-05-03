@@ -25,7 +25,6 @@ type Operation struct {
 	position Position
 	character Char
 	v []Timestamp
-	dv []Timestamp
 	tv []Timestamp
 	ov Timestamp
 	uv Timestamp
@@ -156,6 +155,24 @@ func (o1 *Operation) IsGreaterInEffectRelationOrder(o2 Operation) bool {
 
 	return p1 || p2 || p3
 }
+
+func (o1 *Operation) IsSmallerH(o2 Operation) bool {
+	p1 := o1.position < o2.position
+	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==DEL
+
+	return p1 || p2
+}
+
+func (o1 *Operation) IsGreaterH(o2 Operation) bool {
+	p1 := o1.position > o2.position
+	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==INS
+
+	return p1 || p2
+}
+
+/*func (o1 *Operation) IsEqualH(o2 Operation) bool {
+
+}*/
 
 // Returns the inverse of the operation o. An error is returned if the operation o is unit.
 func (o *Operation) GetInverse() (Operation, error) {
