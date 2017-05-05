@@ -1,4 +1,4 @@
-package main
+package ABTU
 
 import (
 	com "github.com/DamienAy/epflDedisABTU/communication"
@@ -19,11 +19,11 @@ var (
 	lastOp int
 	lock sync.Mutex
 	RBLock sync.Mutex
-	communicationService com.CommunicationService
+	communicationService *com.CommunicationService
 )
 
 func main() {
-	communicationService, err := com.SetupCommunicationService(1, printOp)
+	/*communicationService, err := com.SetupCommunicationService(1, printOp)
 	if err != nil{
 		log.Fatal("fail.")
 	}
@@ -34,12 +34,25 @@ func main() {
 	var ok string
 	fmt.Scanln(&ok)
 
-	//communicationService.Send(Operation{})
+	//communicationService.Send(Operation{})*/
+}
+
+type ABTU struct {
+	ID SiteId
+	N int
+	H []Operation
+	RB []Operation
+	lastOp int
+	lock sync.Mutex
+	RBLock sync.Mutex
+	communicationService *com.CommunicationService
+
 }
 
 func Init(){
 	ID = 1;
 	H = make([]Operation, 0)
+	//communicationService , err = com.SetupCommunicationService(ID, PutInReceivingBuffer)
 }
 
 

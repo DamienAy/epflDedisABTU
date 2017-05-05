@@ -1,10 +1,21 @@
 package timestamp_test
 
 import "testing"
-import . "github.com/DamienAy/epflDedisABTU/timestamp"
+import (
+	. "github.com/DamienAy/epflDedisABTU/timestamp"
+	"log"
+)
 
 
-func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
+func TestTheStruct(t *testing.T) {
+	t1 := NewTimestamp(3)
+	log.Println(t1.Size())
+	s := t1.Size()
+	s++
+	log.Println("lol")
+	log.Println(t1.Size())
+}
+/*func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
 	var t1 Timestamp = [3]int{1, 2, 3}
 	var t2 Timestamp = [3]int{1, 2, 3}
 
@@ -61,4 +72,4 @@ func TestIsContainedInShouldReturnCorrectly(t *testing.T) {
 	}
 
 
-}
+}*/

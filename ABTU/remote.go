@@ -1,11 +1,40 @@
-package main
+package ABTU
 
 import (
 	. "github.com/DamienAy/epflDedisABTU/operation"
 	. "github.com/DamienAy/epflDedisABTU/singleTypes"
 )
 
+func PutInReceivingBuffer(o Operation) {
+	RBLock.Lock()
+	RB = append(RB, o)
+	RBLock.Unlock()
+}
+
+func CheckForReadyRemote() Operation {
+	RBLock.Lock()
+	lock.Lock()
+	for i:=0 ; i<len(RB) ; i++ {
+		o := RB[i]
+		ov := o.GetV()[0]
+		p1 := true
+		for k, n := range ov {
+			p1 = p1 && n<=SV[k]
+		}
+		if o.GetV()[0][i] == SV[o.GetId()]{
+			if p1 {
+				return o
+			}
+		}
+	}
+	lock.Lock()
+	RBLock.Unlock()
+}
+
 func RemoteThread(o Operation) {
+	RBLock.Lock()
+
+	RBLock.Unlock()
 	lock.Lock()
 	if o.GetOv() == nil {
 		var i int
@@ -116,7 +145,7 @@ func IntegrateR(o Operation) Operation {
 		}
 
 		newH := make([]Operation, len(H)+1)
-		
+
 		for index := range newH {
 			if index < k {
 				newH[index] = H[index]
