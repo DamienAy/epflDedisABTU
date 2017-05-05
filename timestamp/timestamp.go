@@ -10,6 +10,7 @@ type Timestamp struct {
 	size uint64
 }
 
+// Returns a new Timestamp of size size.
 func NewTimestamp(size uint64) Timestamp {
 	return Timestamp{make([]uint64, size), size}
 }
@@ -28,6 +29,7 @@ func (t *Timestamp) Size() uint64 {
 
 
 // Increments the operation counter for site with id sId.
+// Returns an error if
 func (t *Timestamp) Increment(siteId SiteId) error {
 	//type conversion possible, siteId is a uint64
 	if uint64(siteId) >= t.size {
@@ -39,6 +41,7 @@ func (t *Timestamp) Increment(siteId SiteId) error {
 }
 
 // Returns true if and only if the timestamp t1 happened before the timmestamp t2.
+// Returns an error if t1.size != t2.size.
 func (t1 *Timestamp) HappenedBefore(t2 Timestamp) (bool, error) {
 	if t1.size != t2.size {
 		return nil, errors.New("Two timestamps of different lenght cannot be compared")
@@ -56,6 +59,8 @@ func (t1 *Timestamp) HappenedBefore(t2 Timestamp) (bool, error) {
 	}
 }
 
+// Returns true if and only if t1.time is equal to t2.time.
+// Returns an error if t1.size is not equal to t2.size.
 func (t1 *Timestamp) Equals(t2 Timestamp) (bool, error) {
 	if t1.size!=t2.size {
 		return nil, errors.New("Two timestamps of different lenght cannot be compared")
@@ -70,6 +75,7 @@ func (t1 *Timestamp) Equals(t2 Timestamp) (bool, error) {
 }
 
 // Returns true if and only if the timestamp t is contained in the timestamp slice tSlice.
+// Returns an error if two compared timestamps have different length.
 func (t *Timestamp) IsContainedIn(tSlice []Timestamp) (bool, error) {
 	for _, t2 := range tSlice {
 		equals, err := t.Equals(t2)
@@ -85,6 +91,7 @@ func (t *Timestamp) IsContainedIn(tSlice []Timestamp) (bool, error) {
 }
 
 // Returns true if and only if the intersection between the two slices of timestamps is not empty.
+// Returns an error if two compared timestamps have different length.
 func IntersectionIsNotEmpty(tSlice1 []Timestamp, tSlice2 []Timestamp) (bool, error) {
 	for _, t1 := range tSlice1 {
 		isContainedIn, err := t1.IsContainedIn(tSlice2)

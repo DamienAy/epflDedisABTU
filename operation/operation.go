@@ -142,21 +142,33 @@ func (o *Operation) SetUv(t *Timestamp) {
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
-func (o1 *Operation) HappenedBefore(o2 Operation) bool {
+func (o1 *Operation) HappenedBefore(o2 Operation) (bool, error) {
 	for _, e1:= range o1.v{
 		for _, e2:= range o2.v {
-			if e1.HappenedBefore(e2) {
-				return true
+			happenendBefore, err := e1.HappenedBefore(e2)
+			if err!=nil {
+				return nil, err
+			} else {
+				return happenendBefore, nil
 			}
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // Returns true if and only if operation o1 is concurrent with operation o2.
-func (o1 *Operation) IsConcurrentWith(o2 Operation) bool {
-	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(*o1))
+func (o1 *Operation) IsConcurrentWith(o2 Operation) (bool, error) {
+	o1Ho2, err := o1.HappenedBefore(o2)
+	if err!=nil {
+		return nil, err
+	}
+	o2Ho1, err2 := o2.HappenedBefore(*o1)
+	if err2!=nil {
+		return nil, err
+	}
+	
+	return !(o1Ho2 || o2Ho1), nil
 }
 
 // Returns true if and only if operation o1 is smaller in effect relation order than o2

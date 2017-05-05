@@ -37,7 +37,7 @@ func main() {
 	//communicationService.Send(Operation{})*/
 }
 
-type ABTU struct {
+type ABTUInstance struct {
 	ID SiteId
 	N int
 	H []Operation
