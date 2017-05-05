@@ -47,13 +47,24 @@ func NewOperation(
 	return Operation{id, opType, position, character, v, dv, tv, &myOv, &myUv}
 }
 
+// Returns a new operation.
+// Only sets id, opType, position, and character.
+func PartialOperation(
+	id SiteId,
+	opType OpType,
+	position Position,
+	character Char) Operation {
+	return Operation{id: id, opType:DEL, position:position, character:character}
+}
+
+
 // Returns the siteId where the operation o has been generated.
-func (o *Operation) GetId() SiteId {
+func (o *Operation) Id() SiteId {
 	return o.id
 }
 
 // Returns the OpType of the operation o.
-func (o *Operation) GetOpType() OpType {
+func (o *Operation) OpType() OpType {
 	return o.opType
 }
 
@@ -63,7 +74,7 @@ func (o *Operation) SetToUnit(){
 }
 
 // Returns the Position of the operation o.
-func (o *Operation) GetPos() Position {
+func (o *Operation) Pos() Position {
 	return o.position
 }
 
@@ -73,13 +84,13 @@ func (o *Operation) SetPos(p Position) {
 }
 
 // Returns the character of the operation o.
-func (o *Operation) GetChar() Char {
+func (o *Operation) Char() Char {
 	return o.character
 }
 
 
 // Returns a slice containing the timestamps of operation o.
-func (o *Operation) GetV() []Timestamp {
+func (o *Operation) V() []Timestamp {
 	return o.v
 }
 
@@ -109,9 +120,8 @@ func (o *Operation) AddTv(t Timestamp) {
 }
 
 // Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
-func (o *Operation) GetOv() *Timestamp {
-	myOv := *(o.ov)
-	return &myOv
+func (o *Operation) Ov() *Timestamp {
+	return o.ov
 }
 
 // Sets the timestamp ov of the operation o to t.
@@ -121,9 +131,8 @@ func (o *Operation) SetOv(t *Timestamp) {
 }
 
 // Returns the timestamp of the operation that undoes o.
-func (o *Operation) GetUv() *Timestamp {
-	myUv := *(o.ov)
-	return &myUv
+func (o *Operation) Uv() *Timestamp {
+	return o.uv
 }
 
 // Sets the timestamp uv of the operation o to t.
@@ -134,8 +143,8 @@ func (o *Operation) SetUv(t *Timestamp) {
 
 // Returns true if and only if operation o1 happened before operation o2.
 func (o1 *Operation) HappenedBefore(o2 Operation) bool {
-	for _, e1:= range o1.GetV(){
-		for _, e2:= range o2.GetV() {
+	for _, e1:= range o1.v{
+		for _, e2:= range o2.v {
 			if e1.HappenedBefore(e2) {
 				return true
 			}
@@ -150,7 +159,8 @@ func (o1 *Operation) IsConcurrentWith(o2 Operation) bool {
 	return !(o1.HappenedBefore(o2) || o2.HappenedBefore(*o1))
 }
 
-// Returns true if and only if operation o1 is smaller in effect relation order than o2.
+// Returns true if and only if operation o1 is smaller in effect relation order than o2
+// when both operations have the same definition state.
 func (o1 *Operation) IsSmallerC(o2 Operation) bool {
 	p1 := o1.position < o2.position
 	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==DEL
@@ -159,7 +169,8 @@ func (o1 *Operation) IsSmallerC(o2 Operation) bool {
 	return p1 || p2 || p3
 }
 
-// Returns true if and only if operation o1 is greater in effect relation order than o2.
+// Returns true if and only if operation o1 is greater in effect relation order than o2
+// when both operations have the same definition state.
 func (o1 *Operation) IsGreaterC(o2 Operation) bool {
 	p1 := o1.position > o2.position
 	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==INS
@@ -168,6 +179,8 @@ func (o1 *Operation) IsGreaterC(o2 Operation) bool {
 	return p1 || p2 || p3
 }
 
+// Returns true if and only if operation o1 is smaller in effect relation order than o2
+// when dst(o2) = dst(o1) * o1
 func (o1 *Operation) IsSmallerH(o2 Operation) bool {
 	p1 := o1.position < o2.position
 	p2 := o1.position==o2.position && o1.opType==DEL && o2.opType==DEL
@@ -175,6 +188,8 @@ func (o1 *Operation) IsSmallerH(o2 Operation) bool {
 	return p1 || p2
 }
 
+// Returns true if and only if operation o1 is greater in effect relation order than o2
+// when dst(o2) = dst(o1) * o1
 func (o1 *Operation) IsGreaterH(o2 Operation) bool {
 	p1 := o1.position > o2.position
 	p2 := o1.position==o2.position && o1.opType==INS && o2.opType==INS
@@ -182,18 +197,15 @@ func (o1 *Operation) IsGreaterH(o2 Operation) bool {
 	return p1 || p2
 }
 
-/*func (o1 *Operation) IsEqualH(o2 Operation) bool {
-
-}*/
-
 // Returns the inverse of the operation o. An error is returned if the operation o is unit.
-func (o *Operation) GetInverse() (Operation, error) {
+// Only sets id, opType, position, and character.
+func (o *Operation) GetInverse(siteId SiteId) (Operation, error) {
 	if o.opType == INS {
-		inverse := Operation{opType:DEL, position:o.position, character:o.character}
+		inverse := Operation{id: siteId, opType:DEL, position:o.position, character:o.character}
 		return inverse, nil
 
 	} else if o.opType == DEL{
-		inverse := Operation{opType:INS, position:o.position, character:o.character}
+		inverse := Operation{id: siteId, opType:INS, position:o.position, character:o.character}
 		return inverse, nil
 	} else {
 		return *o, errors.New("Computing the inverse of a unit operation.")
