@@ -35,10 +35,4 @@ func TestJustTryIt ( *testing.T) {
 
 	rbm.Get <- GetOp{ret}
 	fmt.Println(<-ret)
-
-
-	/*rbm.RemoveRearrange <- RemoveRearrangeOp{0, answer }
-	fmt.Println(<-answer)*/
-	//close(rbm.Add)
-	//close(answer)
 }

@@ -15,6 +15,22 @@ func NewTimestamp(size uint64) Timestamp {
 	return Timestamp{make([]uint64, size), size}
 }
 
+func (t *Timestamp) DeepCopy() Timestamp {
+	time := make([]uint64, t.size)
+	copy(time, t.time)
+	return Timestamp{time, t.size}
+}
+
+func DeepCopyTimestamps(timestamps []Timestamp) []Timestamp {
+	timestampsCopy := make([]Timestamp, len(timestamps))
+
+	for i, t := range timestamps {
+		timestampsCopy[i] = t.DeepCopy()
+	}
+
+	return timestampsCopy
+}
+
 // Returns a copy of the time of the Timestamp
 func (t *Timestamp) Time() []uint64 {
 	time := make([]uint64, t.size)

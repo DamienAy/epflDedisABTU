@@ -30,8 +30,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation){
 	rbm.RemoveRearrange = make(chan RemoveRearrangeOp)
 	//rbm.Remove = make(chan RemoveOp)
 
-	rbm.rb = make([]Operation, len(rb))
-	copy(rbm.rb, rb)
+	rbm.rb = DeepCopyOperations(rb)
 
 	go func () {
 		cont := true // True as long as the Add channel is not closed.

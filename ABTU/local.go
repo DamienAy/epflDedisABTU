@@ -6,15 +6,15 @@ import (
 )
 
 
-func LocalThread(localOp SimpleOperation) {
+func (abtu *ABTUInstance) LocalThread(localOp Operation) {
 	//----------------------------------------------
 	//GET OUT THE WAY
 	lock.Lock()
 	//----------------------------------------------
 
-	if localOp.OpType != UNIT { //normal operation case
-		o := localOp.GetOperation()
-		SV[ID]++
+	if localOp.OpType() != UNIT { //normal operation case
+		o := localOp
+		abtu.sv.Increment(abtu.id)
 		o.AddV(SV)
 
 		Execute(o)

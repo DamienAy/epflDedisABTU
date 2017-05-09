@@ -27,12 +27,12 @@ type Operation struct {
 	v []Timestamp
 	dv []Timestamp
 	tv []Timestamp
-	ov *Timestamp
-	uv *Timestamp
+	ov Timestamp
+	uv Timestamp
 }
 
 
-func NewOperation(
+/*func NewOperation(
 	id SiteId,
 	opType OpType,
 	position Position,
@@ -40,12 +40,12 @@ func NewOperation(
 	v []Timestamp,
 	dv []Timestamp,
 	tv []Timestamp,
-	ov *Timestamp,
-	uv *Timestamp) Operation {
+	ov Timestamp,
+	uv Timestamp) Operation {
 	myOv := *ov
 	myUv := *uv
 	return Operation{id, opType, position, character, v, dv, tv, &myOv, &myUv}
-}
+}*/
 
 // Returns a new operation.
 // Only sets id, opType, position, and character.
@@ -55,6 +55,29 @@ func PartialOperation(
 	position Position,
 	character Char) Operation {
 	return Operation{id: id, opType:DEL, position:position, character:character}
+}
+
+func (o *Operation) DeepCopy() Operation {
+	return Operation{
+		o.id,
+		o.opType,
+		o.position,
+		o.character,
+		DeepCopyTimestamps(o.v),
+		DeepCopyTimestamps(o.dv),
+		DeepCopyTimestamps(o.tv),
+		o.ov.DeepCopy(),
+		o.uv.DeepCopy()}
+}
+
+func DeepCopyOperations(operations []Operation) []Operation {
+	operationsCopy := make([]Operation, len(operations))
+
+	for i, o := range operations {
+		operationsCopy[i] = o.DeepCopy()
+	}
+
+	return operationsCopy
 }
 
 
@@ -91,73 +114,64 @@ func (o *Operation) Char() Char {
 
 // Returns a copy of the slice containing the timestamps of operation o.
 func (o *Operation) V() []Timestamp {
-	v := make([]Timestamp, len(o.v))
-	copy(v, o.v)
-	return v
+	return DeepCopy(o.v)
 }
 
 // Appends the timestamp t to the timestamps slice of o.
 func (o *Operation) AddV(t Timestamp) {
-	o.v = append(o.v, t)
+	o.v = append(o.v, t.DeepCopy())
 }
 
 // Returns a copy of the slice containing the timestamps of operations that depend on operation o.
 func (o *Operation) GetDv() []Timestamp {
-	dv := make([]Timestamp, len(o.dv))
-	copy(dv, o.dv)
-	return dv
+	return DeepCopy(o.dv)
 }
 
 // Appends the Timestamp t to the timestamps slice of operations that depend on operation o.
 func (o *Operation) AddDv(t Timestamp) {
-	o.dv = append(o.dv, t)
+	o.dv = append(o.dv, t.DeepCopy())
 }
 
 // Returns a slice containing the timestamps of operations whose effect objects tie with o.c.
 func (o *Operation) GetTv() []Timestamp {
-	tv := make([]Timestamp, len(o.tv))
-	copy(tv, o.tv)
-	return o.tv
+	return DeepCopy(o.tv)
 }
 
 // Appends the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
 func (o *Operation) AddTv(t Timestamp) {
-	o.tv = append(o.tv, t)
+	o.tv = append(o.tv, t.DeepCopy())
 }
 
 // Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
-func (o *Operation) Ov() *Timestamp {
-	ov := *o.ov
-	return &ov
+func (o *Operation) Ov() Timestamp {
+	ov := o.ov.DeepCopy()
+	return ov
 }
 
 // Sets the timestamp ov of the operation o to t.
-func (o *Operation) SetOv(t *Timestamp) {
-	myOv := *t
-	o.ov = &myOv
+func (o *Operation) SetOv(t Timestamp) {
+	o.ov = t.DeepCopy()
 }
 
 // Returns a copy of the timestamp of the operation that undoes o.
-func (o *Operation) Uv() *Timestamp {
-	uv := *o.uv
-	return &uv
+func (o *Operation) Uv() Timestamp {
+	return o.uv.DeepCopy()
 }
 
 // Sets the timestamp uv of the operation o to t.
-func (o *Operation) SetUv(t *Timestamp) {
-	myOv := *t
-	o.ov = &myOv
+func (o *Operation) SetUv(t Timestamp) {
+	o.uv = t.DeepCopy()
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
 func (o1 *Operation) HappenedBefore(o2 Operation) (bool, error) {
 	for _, e1:= range o1.v{
 		for _, e2:= range o2.v {
-			happenendBefore, err := e1.HappenedBefore(e2)
+			happenedBefore, err := e1.HappenedBefore(e2)
 			if err!=nil {
 				return false, err
 			} else {
-				return happenendBefore, nil
+				return happenedBefore, nil
 			}
 		}
 	}

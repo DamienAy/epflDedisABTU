@@ -10,6 +10,7 @@ import (
 	"sync"
 	. "github.com/DamienAy/epflDedisABTU/singleTypes"
 	"time"
+	. "github.com/DamienAy/epflDedisABTU/remoteBufferManager"
 )
 
 var (
@@ -42,7 +43,7 @@ type ABTUInstance struct {
 	id SiteId
 	sv Timestamp // site timestamp
 	h []Operation // history buffer, sorted in effect relation order
-	rb []Operation // receiving buffer for remote operations
+	rbm RemoteBufferManager // receiving buffer for remote operations
 	lh []Operation // history of local operations for undo.
 
 	manager chan string // channel to manage the instance (stop, etc...)
@@ -61,11 +62,9 @@ func (abtu *ABTUInstance) Init(id SiteId, sv Timestamp, h []Operation, rb []Oper
 	abtu.id = id
 	abtu.sv = sv
 
-	abtu.h = make([]Operation, len(h))
-	copy(abtu.h, h)
+	abtu.h = DeepCopyOperations(h)
 
-	abtu.rb = make([]Operation, len(rb))
-	copy(abtu.rb, rb)
+	abtu.rbm.Start(rb)
 
 	abtu.manager = make(chan string, 2)
 
@@ -94,8 +93,19 @@ func (abtu *ABTUInstance) run() {
 
 func (abtu *ABTUInstance) listenToRemote() {
 	for {
+		remoteOperation, done := <- abtu.rIn
+		if done {}
+		ack := make(chan bool)
+		abtu.rbm.Add <- AddOp{remoteOperation, ack}
+		<-ack
+	}
+}
+
+func (abtu *ABTUInstance) launchController() {
+	for {
 		select {
-		case remoteOperation, done := <- abtu.rIn:
+		case localOperation, done := <- abtu.lIn:
+
 
 		}
 	}
