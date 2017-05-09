@@ -17,20 +17,24 @@ func TestJustTryIt ( *testing.T) {
 	answer := make(chan bool)
 	answer2 := make(chan bool)
 	rbm.Add <- AddOp{operation, answer}
-	fmt.Println(<-answer)
+	<-answer
 	rbm.Add <- AddOp{operation, answer2}
-	fmt.Println(<-answer2)
+	<-answer2
 
 	ret := make(chan []Operation)
 	rbm.Get <- GetOp{ret}
 	fmt.Println(<-ret)
 	rbm.RemoveRearrange <- RemoveRearrangeOp{1, answer }
-	fmt.Println(<-answer)
+	<-answer
 
 
 	rbm.Get <- GetOp{ret}
+	fmt.Println(<-ret)
 	rbm.RemoveRearrange <- RemoveRearrangeOp{0, answer }
-	//fmt.Println(<-answer)
+	<-answer
+
+	rbm.Get <- GetOp{ret}
+	fmt.Println(<-ret)
 
 
 	/*rbm.RemoveRearrange <- RemoveRearrangeOp{0, answer }

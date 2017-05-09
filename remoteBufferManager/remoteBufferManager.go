@@ -63,7 +63,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation){
 						if i<removeRearrangeOp.Index{
 							newBuffer[i] = el
 						} else if i>removeRearrangeOp.Index{
-
+							newBuffer[i-1] = el
 						}
 					}
 
