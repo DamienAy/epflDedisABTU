@@ -7,19 +7,15 @@ import (
 
 
 func (abtu *ABTUInstance) LocalThread(localOp Operation) {
-	//----------------------------------------------
-	//GET OUT THE WAY
-	lock.Lock()
-	//----------------------------------------------
 
 	if localOp.OpType() != UNIT { //normal operation case
 		o := localOp
 		abtu.sv.Increment(abtu.id)
-		o.AddV(SV)
+		o.AddV(abtu.sv)
 
 		Execute(o)
 		o2 := IntegrateL(o)
-		communicationService.Send(o2)
+		abtu.rOut <- o2.DeepCopy()
 	} else { //undo case
 		toUndo := &(H[lastOp])
 		if len(toUndo.Uv())!= 0 || len(toUndo.GetDv())!=0 {

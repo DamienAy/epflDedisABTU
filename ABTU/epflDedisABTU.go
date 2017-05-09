@@ -1,43 +1,15 @@
 package ABTU
 
 import (
-	com "github.com/DamienAy/epflDedisABTU/communication"
 
 	"fmt"
 	. "github.com/DamienAy/epflDedisABTU/operation"
 	"log"
 	. "github.com/DamienAy/epflDedisABTU/timestamp"
-	"sync"
 	. "github.com/DamienAy/epflDedisABTU/singleTypes"
 	"time"
 	. "github.com/DamienAy/epflDedisABTU/remoteBufferManager"
 )
-
-var (
-	ID SiteId
-	SV Timestamp
-	H []Operation
-	RB []Operation
-	lastOp int
-	lock sync.Mutex
-	RBLock sync.Mutex
-	communicationService *com.CommunicationService
-)
-
-func main() {
-	/*communicationService, err := com.SetupCommunicationService(1, printOp)
-	if err != nil{
-		log.Fatal("fail.")
-	}
-
-	log.Println(communicationService)
-
-	fmt.Println("Press enter when other peers ready")
-	var ok string
-	fmt.Scanln(&ok)
-
-	//communicationService.Send(Operation{})*/
-}
 
 type ABTUInstance struct {
 	id SiteId
@@ -49,11 +21,11 @@ type ABTUInstance struct {
 	manager chan string // channel to manage the instance (stop, etc...)
 
 	lIn chan Operation // channel for receiving from local frontend
-	lAckIn chan bool
+	lAckIn chan bool // channel for receiving acknowledgements for the execution of remote operations
 	lOut chan Operation // channel for sending to local frontend
 
-	rIn chan Operation
-	rOut chan Operation
+	rIn chan Operation // channel for receiving remote operations
+	rOut chan Operation // channel for dispatching local operations to remote sites.
 }
 
 // Initializes the ABTUInstance abtu.
@@ -88,7 +60,14 @@ func (abtu *ABTUInstance) Stop(){
 }
 
 func (abtu *ABTUInstance) run() {
-
+	for {
+		select {
+		case localOperation, done := <- abtu.lIn:
+			if done {}
+			abtu.LocalThread(localOperation)
+		//
+		}
+	}
 }
 
 func (abtu *ABTUInstance) listenToRemote() {
@@ -102,13 +81,7 @@ func (abtu *ABTUInstance) listenToRemote() {
 }
 
 func (abtu *ABTUInstance) launchController() {
-	for {
-		select {
-		case localOperation, done := <- abtu.lIn:
 
-
-		}
-	}
 }
 
 
