@@ -9,6 +9,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/timestamp"
 	"sync"
 	. "github.com/DamienAy/epflDedisABTU/singleTypes"
+	"time"
 )
 
 var (
@@ -38,27 +39,75 @@ func main() {
 }
 
 type ABTUInstance struct {
-	ID SiteId
-	N int
-	H []Operation
-	RB []Operation
-	lastOp int
-	lock sync.Mutex
-	RBLock sync.Mutex
-	communicationService *com.CommunicationService
+	id SiteId
+	sv Timestamp // site timestamp
+	h []Operation // history buffer, sorted in effect relation order
+	rb []Operation // receiving buffer for remote operations
+	lh []Operation // history of local operations for undo.
+
+	manager chan string // channel to manage the instance (stop, etc...)
+
+	lIn chan Operation // channel for receiving from local frontend
+	lAckIn chan bool
+	lOut chan Operation // channel for sending to local frontend
+
+	rIn chan Operation
+	rOut chan Operation
+}
+
+// Initializes the ABTUInstance abtu.
+func (abtu *ABTUInstance) Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) (chan<- Operation, chan<- bool, <-chan Operation, chan<- Operation, <-chan Operation){
+
+	abtu.id = id
+	abtu.sv = sv
+
+	abtu.h = make([]Operation, len(h))
+	copy(abtu.h, h)
+
+	abtu.rb = make([]Operation, len(rb))
+	copy(abtu.rb, rb)
+
+	abtu.manager = make(chan string, 2)
+
+	abtu.lIn = make(chan Operation, 20)
+	abtu.lAckIn = make(chan bool, 20)
+	abtu.lOut = make(chan Operation, 20)
+
+	abtu.rIn = make(chan Operation, 20)
+	abtu.rOut = make(chan Operation, 20)
+
+	return abtu.lIn, abtu.lAckIn, abtu.lOut, abtu.rIn, abtu.rOut
+}
+
+func (abtu *ABTUInstance) Run(){
+	go abtu.run()
+	return
+}
+
+func (abtu *ABTUInstance) Stop(){
+	abtu.manager <- "stop"
+}
+
+func (abtu *ABTUInstance) run() {
 
 }
 
-func Init(){
-	ID = 1;
-	H = make([]Operation, 0)
-	//communicationService , err = com.SetupCommunicationService(ID, PutInReceivingBuffer)
+func (abtu *ABTUInstance) listenToRemote() {
+	for {
+		select {
+		case remoteOperation, done := <- abtu.rIn:
+
+		}
+	}
 }
+
+
+
 
 
 func printOp(o Operation){
-	log.Println(o)
-	fmt.Println("Press enter when other peers ready")
+	log.Println(time.Now())
+
 	var ok string
 	fmt.Scanln(&ok)
 }

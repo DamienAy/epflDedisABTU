@@ -89,9 +89,11 @@ func (o *Operation) Char() Char {
 }
 
 
-// Returns a slice containing the timestamps of operation o.
+// Returns a copy of the slice containing the timestamps of operation o.
 func (o *Operation) V() []Timestamp {
-	return o.v
+	v := make([]Timestamp, len(o.v))
+	copy(v, o.v)
+	return v
 }
 
 // Appends the timestamp t to the timestamps slice of o.
@@ -99,9 +101,11 @@ func (o *Operation) AddV(t Timestamp) {
 	o.v = append(o.v, t)
 }
 
-// Returns a slice containing the timestamps of operations that depend on operation o.
+// Returns a copy of the slice containing the timestamps of operations that depend on operation o.
 func (o *Operation) GetDv() []Timestamp {
-	return o.dv
+	dv := make([]Timestamp, len(o.dv))
+	copy(dv, o.dv)
+	return dv
 }
 
 // Appends the Timestamp t to the timestamps slice of operations that depend on operation o.
@@ -111,6 +115,8 @@ func (o *Operation) AddDv(t Timestamp) {
 
 // Returns a slice containing the timestamps of operations whose effect objects tie with o.c.
 func (o *Operation) GetTv() []Timestamp {
+	tv := make([]Timestamp, len(o.tv))
+	copy(tv, o.tv)
 	return o.tv
 }
 
@@ -121,7 +127,8 @@ func (o *Operation) AddTv(t Timestamp) {
 
 // Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
 func (o *Operation) Ov() *Timestamp {
-	return o.ov
+	ov := *o.ov
+	return &ov
 }
 
 // Sets the timestamp ov of the operation o to t.
@@ -130,9 +137,10 @@ func (o *Operation) SetOv(t *Timestamp) {
 	o.ov = &myOv
 }
 
-// Returns the timestamp of the operation that undoes o.
+// Returns a copy of the timestamp of the operation that undoes o.
 func (o *Operation) Uv() *Timestamp {
-	return o.uv
+	uv := *o.uv
+	return &uv
 }
 
 // Sets the timestamp uv of the operation o to t.
@@ -147,7 +155,7 @@ func (o1 *Operation) HappenedBefore(o2 Operation) (bool, error) {
 		for _, e2:= range o2.v {
 			happenendBefore, err := e1.HappenedBefore(e2)
 			if err!=nil {
-				return nil, err
+				return false, err
 			} else {
 				return happenendBefore, nil
 			}
@@ -161,13 +169,13 @@ func (o1 *Operation) HappenedBefore(o2 Operation) (bool, error) {
 func (o1 *Operation) IsConcurrentWith(o2 Operation) (bool, error) {
 	o1Ho2, err := o1.HappenedBefore(o2)
 	if err!=nil {
-		return nil, err
+		return false, err
 	}
 	o2Ho1, err2 := o2.HappenedBefore(*o1)
 	if err2!=nil {
-		return nil, err
+		return false, err
 	}
-	
+
 	return !(o1Ho2 || o2Ho1), nil
 }
 
