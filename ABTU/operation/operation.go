@@ -4,6 +4,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes";
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp";
 	"errors"
+	"encoding/json"
 )
 
 // Represents an operation as defined in the ABTU paper.
@@ -261,7 +262,7 @@ type PublicOperation struct {
 
 // Returns the PublicOperation corresponding to the Operation o
 // The Timestamps contained in the Operation o are also transformed to PublicTimestamps
-func OperationToPublicOp(o Operation) PublicOperation {
+func OperationToPublicOperation(o Operation) PublicOperation {
 	copy := DeepCopyOperation(o)
 	return PublicOperation{
 		copy.Id(),
@@ -277,7 +278,7 @@ func OperationToPublicOp(o Operation) PublicOperation {
 
 // Returns the Operation corresoponding to the PublicOperation publicOP.
 // The PublicTimestamps contained in the PublicOperation publicOp are also transformed to Timestamps.
-func publicOpToOperation(publicOp PublicOperation) Operation {
+func publicOperationToOperation(publicOp PublicOperation) Operation {
 	return DeepCopyOperation(NewOperation(
 		publicOp.Id,
 		publicOp.OpType,
@@ -308,3 +309,52 @@ func OperationToFrontendOperation(operation Operation) FrontendOperation {
 	return FrontendOperation{operation.opType, operation.character, operation.position}
 }
 
+// Returns the encoding in json format (frontend) corresponding to the operation o.
+// Returns an error if the encoding failed.
+func (o *Operation) EncodeFrontend() ([]byte, error) {
+	bytes, err := json.Marshal(&OperationToFrontendOperation(*o))
+	if err != nil {
+		return nil, errors.New("Json encoding failed :" + err.Error())
+	}
+
+	return bytes, nil
+}
+
+// Returns the operation corresponding to the json encoding of a frontendOperation.
+// Returns an error if the decoding failed.
+func DecodeFrontend(bytes []byte, siteId SiteId) (Operation, error) {
+	var frontendOperation FrontendOperation
+
+	err := json.Unmarshal(bytes, &frontendOperation)
+
+	if err != nil {
+	return nil, errors.New("Json decoding failed :" + err.Error())
+	}
+
+	return FrontendOperationToOperation(frontendOperation, siteId), nil
+}
+
+// Returns the encoding in json format (for peers) corresponding to the operation o.
+// Returns an error if the encoding failed.
+func (o *Operation) EncodePeers() ([]byte, error) {
+	bytes, err := json.Marshal(OperationToPublicOperation(*o))
+	if err != nil {
+		return nil, errors.New("Json encoding failed :" + err.Error())
+	}
+
+	return bytes, nil
+}
+
+// Returns the operation corresponding to the json encoding of a publicOperation.
+// Returns an error if the decoding failed.
+func DecodePeers(bytes []byte) (Operation, error) {
+	var publicOperation PublicOperation
+
+	err := json.Unmarshal(bytes, &publicOperation)
+
+	if err != nil {
+		return nil, errors.New("Json decoding failed :" + err.Error())
+	}
+
+	return publicOperationToOperation(publicOperation), nil
+}

@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="c549e4fe-756c-4fda-ab6b-454a7d923b87" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ABTU/operation/operation.go" afterPath="$PROJECT_DIR$/ABTU/operation/operation.go" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ABTU/timestamp/timestamp.go" afterPath="$PROJECT_DIR$/ABTU/timestamp/timestamp.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,10 +17,10 @@
       <file leaf-file-name="operation.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ABTU/operation/operation.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="803">
-              <caret line="310" column="0" lean-forward="true" selection-start-line="310" selection-start-column="0" selection-end-line="310" selection-end-column="0" />
+            <state relative-caret-position="2673">
+              <caret line="316" column="60" lean-forward="false" selection-start-line="316" selection-start-column="60" selection-end-line="316" selection-end-column="60" />
               <folding>
-                <element signature="e#19#151#0" expanded="true" />
+                <element signature="e#19#168#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -30,8 +29,8 @@
       <file leaf-file-name="timestamp.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ABTU/timestamp/timestamp.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="803">
-              <caret line="166" column="0" lean-forward="true" selection-start-line="166" selection-start-column="0" selection-end-line="166" selection-end-column="0" />
+            <state relative-caret-position="310">
+              <caret line="137" column="62" lean-forward="true" selection-start-line="137" selection-start-column="62" selection-end-line="137" selection-end-column="62" />
               <folding />
             </state>
           </provider>
@@ -793,18 +792,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ABTU/timestamp/timestamp.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="803">
-          <caret line="166" column="0" lean-forward="true" selection-start-line="166" selection-start-column="0" selection-end-line="166" selection-end-column="0" />
+        <state relative-caret-position="310">
+          <caret line="137" column="62" lean-forward="true" selection-start-line="137" selection-start-column="62" selection-end-line="137" selection-end-column="62" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ABTU/operation/operation.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="803">
-          <caret line="310" column="0" lean-forward="true" selection-start-line="310" selection-start-column="0" selection-end-line="310" selection-end-column="0" />
+        <state relative-caret-position="2673">
+          <caret line="316" column="60" lean-forward="false" selection-start-line="316" selection-start-column="60" selection-end-line="316" selection-end-column="60" />
           <folding>
-            <element signature="e#19#151#0" expanded="true" />
+            <element signature="e#19#168#0" expanded="true" />
           </folding>
         </state>
       </provider>
