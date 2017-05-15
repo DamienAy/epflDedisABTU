@@ -1,8 +1,8 @@
 package ABTU
 
 import (
-	. "github.com/DamienAy/epflDedisABTU/operation"
-	. "github.com/DamienAy/epflDedisABTU/singleTypes"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 )
 
 func PutInReceivingBuffer(o Operation) {

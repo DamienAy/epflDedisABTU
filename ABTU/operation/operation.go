@@ -1,23 +1,12 @@
 package operation
 
 import (
-	. "github.com/DamienAy/epflDedisABTU/singleTypes";
-	. "github.com/DamienAy/epflDedisABTU/timestamp";
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypesTypes";
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestampstamp";
 	"errors"
 )
 
-type SimpleOperation struct {
-	OpType OpType
-	Character Char
-	Position Position
-}
 
-func (simpleOp *SimpleOperation) GetOperation() Operation {
-	return Operation{
-		opType: simpleOp.OpType,
-		character: simpleOp.Character,
-		position: simpleOp.Position}
-}
 
 type Operation struct {
 	id SiteId
@@ -32,7 +21,7 @@ type Operation struct {
 }
 
 
-/*func NewOperation(
+func NewOperation(
 	id SiteId,
 	opType OpType,
 	position Position,
@@ -42,10 +31,17 @@ type Operation struct {
 	tv []Timestamp,
 	ov Timestamp,
 	uv Timestamp) Operation {
-	myOv := *ov
-	myUv := *uv
-	return Operation{id, opType, position, character, v, dv, tv, &myOv, &myUv}
-}*/
+	return Operation{
+		id,
+		opType,
+		position,
+		character,
+		DeepCopyTimestamps(v),
+		DeepCopyTimestamps(dv),
+		DeepCopyTimestamps(tv),
+		DeepCopyTimestamp(ov),
+		DeepCopyTimestamp(uv)}
+}
 
 // Returns a new operation.
 // Only sets id, opType, position, and character.
@@ -57,7 +53,7 @@ func PartialOperation(
 	return Operation{id: id, opType:DEL, position:position, character:character}
 }
 
-func (o *Operation) DeepCopy() Operation {
+func DeepCopy(o Operation) Operation {
 	return Operation{
 		o.id,
 		o.opType,
@@ -66,15 +62,15 @@ func (o *Operation) DeepCopy() Operation {
 		DeepCopyTimestamps(o.v),
 		DeepCopyTimestamps(o.dv),
 		DeepCopyTimestamps(o.tv),
-		o.ov.DeepCopy(),
-		o.uv.DeepCopy()}
+		DeepCopyTimestamp(o.ov),
+		DeepCopyTimestamp(o.uv)}
 }
 
 func DeepCopyOperations(operations []Operation) []Operation {
 	operationsCopy := make([]Operation, len(operations))
 
 	for i, o := range operations {
-		operationsCopy[i] = o.DeepCopy()
+		operationsCopy[i] = DeepCopy(o)
 	}
 
 	return operationsCopy
@@ -114,17 +110,17 @@ func (o *Operation) Char() Char {
 
 // Returns a copy of the slice containing the timestamps of operation o.
 func (o *Operation) V() []Timestamp {
-	return DeepCopy(o.v)
+	return DeepCopyTimestamps(o.v)
 }
 
 // Appends the timestamp t to the timestamps slice of o.
 func (o *Operation) AddV(t Timestamp) {
-	o.v = append(o.v, t.DeepCopy())
+	o.v = append(o.v, DeepCopyTimestamp(t))
 }
 
 // Returns a copy of the slice containing the timestamps of operations that depend on operation o.
-func (o *Operation) GetDv() []Timestamp {
-	return DeepCopy(o.dv)
+func (o *Operation) Dv() []Timestamp {
+	return DeepCopyTimestamps(o.dv)
 }
 
 // Appends the Timestamp t to the timestamps slice of operations that depend on operation o.
@@ -133,8 +129,8 @@ func (o *Operation) AddDv(t Timestamp) {
 }
 
 // Returns a slice containing the timestamps of operations whose effect objects tie with o.c.
-func (o *Operation) GetTv() []Timestamp {
-	return DeepCopy(o.tv)
+func (o *Operation) Tv() []Timestamp {
+	return DeepCopyTimestamps(o.tv)
 }
 
 // Appends the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
@@ -245,5 +241,56 @@ func (o *Operation) GetInverse(siteId SiteId) (Operation, error) {
 		return *o, errors.New("Computing the inverse of a unit operation.")
 	}
 
+}
+
+type publicOp struct {
+	Id SiteId
+	OpType OpType
+	Position Position
+	Character Char
+	V []Timestamp
+	Dv []Timestamp
+	Tv []Timestamp
+	Ov Timestamp
+	Uv Timestamp
+}
+
+//Transforms an Operation into a publicOp.
+func OperationToPublicOp(o Operation) publicOp {
+	copy := DeepCopy(o)
+	return publicOp{
+		copy.Id(),
+		copy.OpType(),
+		copy.Pos(),
+		copy.Char(),
+		copy.V(),
+		copy.Dv(),
+		copy.Tv(),
+		copy.Ov(),
+		copy.Uv()}
+}
+
+//Transforms a publicOp into an Operation.
+func publicOpToOperation(o publicOp) Operation {
+	return DeepCopy(NewOperation(
+		o.Id,
+		o.OpType,
+		o.Position,
+		o.Character,
+		o.V,
+		o.Dv,
+		o.Tv,
+		o.Ov,
+		o.Uv))
+}
+
+type FrontendOperation struct {
+	OpType OpType
+	Character Char
+	Position Position
+}
+
+func (frontendOperation *FrontendOperation) GetOperation(siteId SiteId) Operation {
+	return PartialOperation(siteId, frontendOperation.OpType, frontendOperation.Position, frontendOperation.Character)
 }
 

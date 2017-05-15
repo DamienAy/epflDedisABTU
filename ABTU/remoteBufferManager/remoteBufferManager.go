@@ -1,6 +1,6 @@
 package remoteBufferManager
 
-import . "github.com/DamienAy/epflDedisABTU/operation"
+import . "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 
 type GetOp struct {
 	Ret chan []Operation

@@ -1,8 +1,8 @@
-package timestamp_test
+package Timestamp
 
 import "testing"
 import (
-	. "github.com/DamienAy/epflDedisABTU/timestamp"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	"log"
 )
 

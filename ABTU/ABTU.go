@@ -3,12 +3,12 @@ package ABTU
 import (
 
 	"fmt"
-	. "github.com/DamienAy/epflDedisABTU/operation"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	"log"
-	. "github.com/DamienAy/epflDedisABTU/timestamp"
-	. "github.com/DamienAy/epflDedisABTU/singleTypes"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"time"
-	. "github.com/DamienAy/epflDedisABTU/remoteBufferManager"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/remoteBufferManager"
 )
 
 type ABTUInstance struct {
@@ -21,7 +21,6 @@ type ABTUInstance struct {
 	manager chan string // channel to manage the instance (stop, etc...)
 
 	lIn chan Operation // channel for receiving from local frontend
-	lAckIn chan bool // channel for receiving acknowledgements for the execution of remote operations
 	lOut chan Operation // channel for sending to local frontend
 
 	rIn chan Operation // channel for receiving remote operations
@@ -29,8 +28,8 @@ type ABTUInstance struct {
 }
 
 // Initializes the ABTUInstance abtu.
-func (abtu *ABTUInstance) Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) (chan<- Operation, chan<- bool, <-chan Operation, chan<- Operation, <-chan Operation){
-
+func Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) *ABTUInstance {
+	var abtu *ABTUInstance
 	abtu.id = id
 	abtu.sv = sv
 
@@ -41,18 +40,17 @@ func (abtu *ABTUInstance) Init(id SiteId, sv Timestamp, h []Operation, rb []Oper
 	abtu.manager = make(chan string, 2)
 
 	abtu.lIn = make(chan Operation, 20)
-	abtu.lAckIn = make(chan bool, 20)
 	abtu.lOut = make(chan Operation, 20)
 
 	abtu.rIn = make(chan Operation, 20)
 	abtu.rOut = make(chan Operation, 20)
 
-	return abtu.lIn, abtu.lAckIn, abtu.lOut, abtu.rIn, abtu.rOut
+	return abtu
 }
 
-func (abtu *ABTUInstance) Run(){
+func (abtu *ABTUInstance) Run() (chan<- Operation, <-chan Operation, chan<- Operation, <-chan Operation){
 	go abtu.run()
-	return
+	return abtu.lIn, abtu.lOut, abtu.rIn, abtu.rOut
 }
 
 func (abtu *ABTUInstance) Stop(){
@@ -62,8 +60,8 @@ func (abtu *ABTUInstance) Stop(){
 func (abtu *ABTUInstance) run() {
 	for {
 		select {
-		case localOperation, done := <- abtu.lIn:
-			if done {}
+		case localOperation, notDone := <- abtu.lIn:
+			if notDone {}
 			abtu.LocalThread(localOperation)
 		//
 		}

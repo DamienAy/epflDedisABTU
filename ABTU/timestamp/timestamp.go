@@ -1,7 +1,7 @@
 package Timestamp
 
 import (
-	. "github.com/DamienAy/epflDedisABTU/singleTypes"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"errors"
 )
 
@@ -15,7 +15,7 @@ func NewTimestamp(size uint64) Timestamp {
 	return Timestamp{make([]uint64, size), size}
 }
 
-func (t *Timestamp) DeepCopy() Timestamp {
+func DeepCopyTimestamp(t Timestamp) Timestamp {
 	time := make([]uint64, t.size)
 	copy(time, t.time)
 	return Timestamp{time, t.size}
@@ -25,7 +25,7 @@ func DeepCopyTimestamps(timestamps []Timestamp) []Timestamp {
 	timestampsCopy := make([]Timestamp, len(timestamps))
 
 	for i, t := range timestamps {
-		timestampsCopy[i] = t.DeepCopy()
+		timestampsCopy[i] = DeepCopyTimestamp(t)
 	}
 
 	return timestampsCopy
