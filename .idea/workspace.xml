@@ -2,19 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c549e4fe-756c-4fda-ab6b-454a7d923b87" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ABTU/remoteBufferManager/remoteBufferManager_test.go" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/communication/communication.go" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/constants/constants.go" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/remoteBufferManagerTest/remoteBufferManager_test.go" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/ABTU/epflDedisABTU.go" afterPath="$PROJECT_DIR$/ABTU/ABTU.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/operation/operation.go" afterPath="$PROJECT_DIR$/ABTU/operation/operation.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/remoteBufferManager/remoteBufferManager.go" afterPath="$PROJECT_DIR$/ABTU/remoteBufferManager/remoteBufferManager.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/singleTypes/simpleTypes.go" afterPath="$PROJECT_DIR$/ABTU/singleTypes/simpleTypes.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/timestamp/timestamp.go" afterPath="$PROJECT_DIR$/ABTU/timestamp/timestamp.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/timestamp_test/timestamp_test.go" afterPath="$PROJECT_DIR$/ABTU/timestamp/timestamp_test.go" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ABTU/local.go" afterPath="$PROJECT_DIR$/ABTU/local.go" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ABTU/remote.go" afterPath="$PROJECT_DIR$/ABTU/remote.go" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Management" afterPath="$PROJECT_DIR$/Management" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -49,8 +37,8 @@
       <file leaf-file-name="management.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Management/management.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="680">
-              <caret line="40" column="0" lean-forward="true" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+            <state relative-caret-position="493">
+              <caret line="29" column="77" lean-forward="false" selection-start-line="29" selection-start-column="77" selection-end-line="29" selection-end-column="77" />
               <folding>
                 <element signature="e#14#230#0" expanded="true" />
               </folding>
@@ -1020,8 +1008,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Management/management.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="680">
-          <caret line="40" column="0" lean-forward="true" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+        <state relative-caret-position="493">
+          <caret line="29" column="77" lean-forward="false" selection-start-line="29" selection-start-column="77" selection-end-line="29" selection-end-column="77" />
           <folding>
             <element signature="e#14#230#0" expanded="true" />
           </folding>
