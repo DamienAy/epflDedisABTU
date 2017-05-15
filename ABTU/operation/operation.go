@@ -1,13 +1,13 @@
 package operation
 
 import (
-	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypesTypes";
-	. "github.com/DamienAy/epflDedisABTU/ABTU/timestampstamp";
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes";
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp";
 	"errors"
 )
 
-
-
+// Represents an operation as defined in the ABTU paper.
+// All fields are private.
 type Operation struct {
 	id SiteId
 	opType OpType
@@ -20,7 +20,7 @@ type Operation struct {
 	uv Timestamp
 }
 
-
+// Returns a new Operation, copies all arguments.
 func NewOperation(
 	id SiteId,
 	opType OpType,
@@ -53,7 +53,9 @@ func PartialOperation(
 	return Operation{id: id, opType:DEL, position:position, character:character}
 }
 
-func DeepCopy(o Operation) Operation {
+// Returns a deep copy of the operation o
+// Timestamps and slices of timestamps are also deep copied.
+func DeepCopyOperation(o Operation) Operation {
 	return Operation{
 		o.id,
 		o.opType,
@@ -66,11 +68,12 @@ func DeepCopy(o Operation) Operation {
 		DeepCopyTimestamp(o.uv)}
 }
 
+// Returns a deep copy of the slice of Operation operations.
 func DeepCopyOperations(operations []Operation) []Operation {
 	operationsCopy := make([]Operation, len(operations))
 
 	for i, o := range operations {
-		operationsCopy[i] = DeepCopy(o)
+		operationsCopy[i] = DeepCopyOperation(o)
 	}
 
 	return operationsCopy
@@ -113,7 +116,7 @@ func (o *Operation) V() []Timestamp {
 	return DeepCopyTimestamps(o.v)
 }
 
-// Appends the timestamp t to the timestamps slice of o.
+// Appends a copy of the timestamp t to the timestamps slice of o.
 func (o *Operation) AddV(t Timestamp) {
 	o.v = append(o.v, DeepCopyTimestamp(t))
 }
@@ -123,40 +126,39 @@ func (o *Operation) Dv() []Timestamp {
 	return DeepCopyTimestamps(o.dv)
 }
 
-// Appends the Timestamp t to the timestamps slice of operations that depend on operation o.
+// Appends a copy of the Timestamp t to the timestamps slice of operations that depend on operation o.
 func (o *Operation) AddDv(t Timestamp) {
-	o.dv = append(o.dv, t.DeepCopy())
+	o.dv = append(o.dv, DeepCopyTimestamp(t))
 }
 
-// Returns a slice containing the timestamps of operations whose effect objects tie with o.c.
+// Returns a copy of the slice containing the timestamps of operations whose effect objects tie with o.c.
 func (o *Operation) Tv() []Timestamp {
 	return DeepCopyTimestamps(o.tv)
 }
 
-// Appends the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
+// Appends a copy of the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
 func (o *Operation) AddTv(t Timestamp) {
-	o.tv = append(o.tv, t.DeepCopy())
+	o.tv = append(o.tv, DeepCopyTimestamp(t))
 }
 
-// Returns the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
+// Returns a copy of the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
 func (o *Operation) Ov() Timestamp {
-	ov := o.ov.DeepCopy()
-	return ov
+	return DeepCopyTimestamp(o.ov)
 }
 
-// Sets the timestamp ov of the operation o to t.
+// Sets the timestamp ov of the operation o to a copy of t.
 func (o *Operation) SetOv(t Timestamp) {
-	o.ov = t.DeepCopy()
+	o.ov = DeepCopyTimestamp(t)
 }
 
 // Returns a copy of the timestamp of the operation that undoes o.
 func (o *Operation) Uv() Timestamp {
-	return o.uv.DeepCopy()
+	return DeepCopyTimestamp(o.uv)
 }
 
-// Sets the timestamp uv of the operation o to t.
+// Sets the timestamp uv of the operation o to a copy of t.
 func (o *Operation) SetUv(t Timestamp) {
-	o.uv = t.DeepCopy()
+	o.uv = DeepCopyTimestamp(t)
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
@@ -243,54 +245,66 @@ func (o *Operation) GetInverse(siteId SiteId) (Operation, error) {
 
 }
 
-type publicOp struct {
+// Same as Operation, all fields are public
+// Used for encoding.
+type PublicOperation struct {
 	Id SiteId
 	OpType OpType
 	Position Position
 	Character Char
-	V []Timestamp
-	Dv []Timestamp
-	Tv []Timestamp
-	Ov Timestamp
-	Uv Timestamp
+	V []PublicTimestamp
+	Dv []PublicTimestamp
+	Tv []PublicTimestamp
+	Ov PublicTimestamp
+	Uv PublicTimestamp
 }
 
-//Transforms an Operation into a publicOp.
-func OperationToPublicOp(o Operation) publicOp {
-	copy := DeepCopy(o)
-	return publicOp{
+// Returns the PublicOperation corresponding to the Operation o
+// The Timestamps contained in the Operation o are also transformed to PublicTimestamps
+func OperationToPublicOp(o Operation) PublicOperation {
+	copy := DeepCopyOperation(o)
+	return PublicOperation{
 		copy.Id(),
 		copy.OpType(),
 		copy.Pos(),
 		copy.Char(),
-		copy.V(),
-		copy.Dv(),
-		copy.Tv(),
-		copy.Ov(),
-		copy.Uv()}
+		TimestampsToPublicTimestamps(copy.V()),
+		TimestampsToPublicTimestamps(copy.Dv()),
+		TimestampsToPublicTimestamps(copy.Tv()),
+		TimestampToPublicTimestamp(copy.Ov()),
+		TimestampToPublicTimestamp(copy.Uv())}
 }
 
-//Transforms a publicOp into an Operation.
-func publicOpToOperation(o publicOp) Operation {
-	return DeepCopy(NewOperation(
-		o.Id,
-		o.OpType,
-		o.Position,
-		o.Character,
-		o.V,
-		o.Dv,
-		o.Tv,
-		o.Ov,
-		o.Uv))
+// Returns the Operation corresoponding to the PublicOperation publicOP.
+// The PublicTimestamps contained in the PublicOperation publicOp are also transformed to Timestamps.
+func publicOpToOperation(publicOp PublicOperation) Operation {
+	return DeepCopyOperation(NewOperation(
+		publicOp.Id,
+		publicOp.OpType,
+		publicOp.Position,
+		publicOp.Character,
+		PublicTimestampsToTimestamps(publicOp.V),
+		PublicTimestampsToTimestamps(publicOp.Dv),
+		PublicTimestampsToTimestamps(publicOp.Tv),
+		PublicTimestampToTimestamp(publicOp.Ov),
+		PublicTimestampToTimestamp(publicOp.Uv)))
 }
 
+// Represents an operation as sent to frontend.
+// Only contains useful information for frontend.
 type FrontendOperation struct {
 	OpType OpType
 	Character Char
 	Position Position
 }
 
-func (frontendOperation *FrontendOperation) GetOperation(siteId SiteId) Operation {
+// Returns the Operation corresponding to the frontendOperation.
+func FrontendOperationToOperation(frontendOperation FrontendOperation, siteId SiteId) Operation {
 	return PartialOperation(siteId, frontendOperation.OpType, frontendOperation.Position, frontendOperation.Character)
+}
+
+// Returns the FrontendOperation corresponding to the Operation.
+func OperationToFrontendOperation(operation Operation) FrontendOperation {
+	return FrontendOperation{operation.opType, operation.character, operation.position}
 }
 

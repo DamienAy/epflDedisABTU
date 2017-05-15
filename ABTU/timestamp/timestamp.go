@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// Represents a timestamp as described in the ABTU paper.
 type Timestamp struct {
 	time []uint64
 	size uint64
@@ -15,12 +16,14 @@ func NewTimestamp(size uint64) Timestamp {
 	return Timestamp{make([]uint64, size), size}
 }
 
+// Returns a deep copy of the timestamp t
 func DeepCopyTimestamp(t Timestamp) Timestamp {
 	time := make([]uint64, t.size)
 	copy(time, t.time)
 	return Timestamp{time, t.size}
 }
 
+// Returns a deep copy of the slice of Timestamp timestamps.
 func DeepCopyTimestamps(timestamps []Timestamp) []Timestamp {
 	timestampsCopy := make([]Timestamp, len(timestamps))
 
@@ -45,7 +48,8 @@ func (t *Timestamp) Size() uint64 {
 
 
 // Increments the operation counter for site with id sId.
-// Returns an error if
+// Returns an error if siteId is >= than the size of the timestamp.
+// TODO adjust implementation for siteId and return error (siteIds might as well be strings)
 func (t *Timestamp) Increment(siteId SiteId) error {
 	//type conversion possible, siteId is a uint64
 //-------- This implementation can change in the future, SiteID might become a string
@@ -80,7 +84,7 @@ func (t1 *Timestamp) HappenedBefore(t2 Timestamp) (bool, error) {
 // Returns an error if t1.size is not equal to t2.size.
 func (t1 *Timestamp) Equals(t2 Timestamp) (bool, error) {
 	if t1.size!=t2.size {
-		return false, errors.New("Two Timestamps of different lenght cannot be compared")
+		return false, errors.New("Two Timestamps of different length cannot be compared")
 	} else {
 		p := true
 		for index, el1 := range t1.time {
@@ -121,4 +125,42 @@ func IntersectionIsNotEmpty(tSlice1 []Timestamp, tSlice2 []Timestamp) (bool, err
 	}
 
 	return false, nil
+}
+
+// Same as Timestamp but with public fields.
+// Used for encoding into Json objects.
+type PublicTimestamp struct {
+	Time []uint64
+	Size uint64
+}
+
+// Returns the PublicTimestamp corresponding to the Timestamp t.
+func TimestampToPublicTimestamp(t Timestamp) PublicTimestamp {
+	timestamp := DeepCopyTimestamp(t)
+	return PublicTimestamp{timestamp.time, timestamp.size}
+}
+
+// Returns the slice of PublicTimestamp corresponding to the slice of Timestamp timestamps.
+func TimestampsToPublicTimestamps(timestamps []Timestamp) []PublicTimestamp {
+	publicTimestamps := make([]PublicTimestamp, len(timestamps))
+	for i, t := range timestamps {
+		publicTimestamps[i] = TimestampToPublicTimestamp(t)
+	}
+
+	return publicTimestamps
+}
+
+// Returns the Timestamp corresponding to the PublicTimestamp publicT
+func PublicTimestampToTimestamp(publicT PublicTimestamp) Timestamp {
+	return DeepCopyTimestamp(Timestamp{publicT.Time, publicT.Size})
+}
+
+// Returns the slice of Timestamp corresponding to the slice of PublicTimestamp publicTimestamps.
+func PublicTimestampsToTimestamps(publicTimestamps []PublicTimestamp) []Timestamp {
+	timestamps := make([]Timestamp, len(publicTimestamps))
+	for i, t := range publicTimestamps {
+		timestamps[i] = PublicTimestampToTimestamp(t)
+	}
+
+	return timestamps
 }
