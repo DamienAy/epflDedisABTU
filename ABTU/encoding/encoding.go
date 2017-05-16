@@ -19,14 +19,6 @@ type FrontendMessage struct {
 	Content []byte
 }
 
-func EncodeFrontendMessage(frontendMsg FrontendMessage) ([]byte, error) {
-	bytes, err := json.Marshal(frontendMsg)
 
-	if err != nil {
-		return nil, errors.New("Json encoding failed :" + err.Error())
-	}
-
-	return bytes, nil
-}
 
 

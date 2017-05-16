@@ -132,6 +132,13 @@ func (o *Operation) AddDv(t Timestamp) {
 	o.dv = append(o.dv, DeepCopyTimestamp(t))
 }
 
+// Appends a copy of the []Timestamp timestamps to o.Dv.
+func (o *Operation) AddAllDv(timestamps []Timestamp) {
+	for _, t := range timestamps {
+		o.AddDv(t)
+	}
+}
+
 // Returns a copy of the slice containing the timestamps of operations whose effect objects tie with o.c.
 func (o *Operation) Tv() []Timestamp {
 	return DeepCopyTimestamps(o.tv)
@@ -140,6 +147,13 @@ func (o *Operation) Tv() []Timestamp {
 // Appends a copy of the timestamp t to the timestamps slice of operations whose effect objects tie with o.c.
 func (o *Operation) AddTv(t Timestamp) {
 	o.tv = append(o.tv, DeepCopyTimestamp(t))
+}
+
+// Appends a copy of the []Timestamp timestamps to o.tv.
+func (o *Operation) AddAllTv(timestamps []Timestamp) {
+	for _, t := range timestamps {
+		o.AddTv(t)
+	}
 }
 
 // Returns a copy of the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).

@@ -3,99 +3,122 @@ package ABTU
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"errors"
+	enc "github.com/DamienAy/epflDedisABTU/ABTU/encoding"
+	"encoding/json"
 )
 
 
-func (abtu *ABTUInstance) LocalThread(localOp Operation) {
+func (abtu *ABTUInstance) LocalThread(bytes []byte, undo bool, toUndo uint64) error {
 
-	if localOp.OpType() != UNIT { //normal operation case
-		o := localOp
+	if !undo {
+		localOp, err := DecodeFrontend(bytes, abtu.id)
+
+		if err != nil {
+			return errors.New("Cannot decode local operation: " + err.Error())
+		}
+
 		abtu.sv.Increment(abtu.id)
-		o.AddV(abtu.sv)
+		localOp.AddV(abtu.sv)
 
-		Execute(o)
-		o2 := IntegrateL(o)
-		abtu.rOut <- o2.DeepCopy()
-	} else { //undo case
-		toUndo := &(H[lastOp])
-		if len(toUndo.Uv())!= 0 || len(toUndo.GetDv())!=0 {
-			return
+		ackToSendFrontend, err := json.Marshal(enc.FrontendMessage{enc.AckLocalOperation, []byte{}})
+		if err != nil {
+			return errors.New("Could not send ackLocalOperation, Json encoding failed :" + err.Error())
+		}
+
+		abtu.lOut <- ackToSendFrontend
+
+		abtu.IntegrateL(&localOp)
+
+		operationToSend, err := localOp.EncodePeers()
+		if err != nil {
+			return errors.New("Cannot send operation to rOut:" + err.Error())
+		}
+
+		abtu.rOut <- operationToSend
+	} else {
+		toUndoOp := &abtu.h[toUndo]
+
+		if toUndoOp.Uv().Size()!= 0 || len(toUndoOp.Dv())!=0 {
+			return nil
 		} else {
-			o, err := toUndo.GetInverse(); check(err)
-			SV[ID]++
-			o.AddV(SV)
-			o.SetOv(&(toUndo.V()[0])) // Right to take the first one???
-			toUndo.SetUv(&SV)
+			undoOp, err := toUndoOp.GetInverse(abtu.id); check(err)
+			abtu.sv.Increment(abtu.id)
+			undoOp.AddV(abtu.sv)
+			undoOp.SetOv(&(toUndo.V()[0])) // Right to take the first one???
+			toUndoOp.SetUv(&SV)
 			Execute(o)
 			o2 := IntegrateL(o)
 			communicationService.Send(o2)
 		}
-
 	}
-	//----------------------------------------------
-	//Free
-	lock.Unlock()
-	//----------------------------------------------
+
+	return nil
 
 }
 
-func IntegrateL(o Operation) Operation {
-	k := len(H)
+func (abtu *ABTUInstance) IntegrateL(localOp *Operation) {
+
+	k := len(abtu.h)
 
 	var offset Position
-	if o.OpType() == INS {
+	if localOp.OpType() == INS {
 		offset = 1
 	} else {
 		offset = -1
 	}
 
-	if o.GetTv() == nil { // o is a normal operation
-		for i:= len(H)-1 ; i>=0; i-- {
-			if H[i].IsGreaterH(o) {
+	if localOp.Tv() == nil { // o is a normal operation
+		for i:= len(abtu.h)-1 ; i>=0; i-- {
+			if abtu.h[i].IsGreaterH(*localOp) {
 				k = i
-				H[i].SetPos(H[i].Pos()+offset)
-			} else if H[i].IsSmallerH(o) {
+				abtu.h[i].SetPos(abtu.h[i].Pos()+offset)
+			} else if abtu.h[i].IsSmallerH(*localOp) {
 				break
 			} else {
-				o.AddTv(H[i].V()[0]) // ok to add only first????????
-				if o.OpType() == DEL {
-					H[i].AddDv(o.V()[0])
+				localOp.AddAllTv(abtu.h[i].V())
+				if localOp.OpType() == DEL {
+					abtu.h[i].AddAllDv(localOp.V())
 				}
 			}
 		}
 	} else {
 		var i int
-		for index, h := range H {
-			if o.Ov().IsContainedIn(h.V()) {
+		for index, h := range abtu.h {
+			if localOp.Ov().IsContainedIn(h.V()) {
 				i = index
 				break
 			}
 		}
 
 		k = i + 1
-		o.AddTv(H[i].V()[0]) //ok to add only first ?????
+		localOp.AddAllTv(abtu.h[i].V())
 
-		for j:=k; j<=len(H); j++ {
-			H[j].SetPos(H[j].Pos()+offset)
+		for j:=k; j<=len(abtu.h); j++ {
+			abtu.h[j].SetPos(abtu.h[j].Pos()+offset)
 		}
 	}
 
-	newH := make([]Operation, len(H)+1)
+	// Insert localOp in H at position i
+	newH := make([]Operation, len(abtu.h)+1)
 
 	for index := range newH {
 		if index < k {
-			newH[index] = H[index]
+			newH[index] = abtu.h[index]
 		} else if index == k {
-			newH[index] = o
+			newH[index] = DeepCopyOperation(*localOp)
 		} else {
-			newH[index] = H[index-1]
+			newH[index] = abtu.h[index-1]
 		}
 	}
 
-	H = newH
-
-	return o
+	abtu.h = newH
 }
 
 func Execute(o Operation)  {
+}
+
+
+func Dispatch(o Operation) {
+
 }
