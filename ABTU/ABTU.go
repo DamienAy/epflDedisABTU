@@ -63,7 +63,6 @@ func (abtu *ABTUInstance) run() {
 		case localOperation, notDone := <- abtu.lIn:
 			if notDone {}
 			abtu.LocalThread(localOperation)
-		//
 		}
 	}
 }
