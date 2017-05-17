@@ -17,7 +17,7 @@ type Operation struct {
 	v []Timestamp
 	dv []Timestamp
 	tv []Timestamp
-	ov Timestamp
+	ov []Timestamp
 	uv Timestamp
 }
 
@@ -30,7 +30,7 @@ func NewOperation(
 	v []Timestamp,
 	dv []Timestamp,
 	tv []Timestamp,
-	ov Timestamp,
+	ov []Timestamp,
 	uv Timestamp) Operation {
 	return Operation{
 		id,
@@ -40,7 +40,7 @@ func NewOperation(
 		DeepCopyTimestamps(v),
 		DeepCopyTimestamps(dv),
 		DeepCopyTimestamps(tv),
-		DeepCopyTimestamp(ov),
+		DeepCopyTimestamps(ov),
 		DeepCopyTimestamp(uv)}
 }
 
@@ -65,7 +65,7 @@ func DeepCopyOperation(o Operation) Operation {
 		DeepCopyTimestamps(o.v),
 		DeepCopyTimestamps(o.dv),
 		DeepCopyTimestamps(o.tv),
-		DeepCopyTimestamp(o.ov),
+		DeepCopyTimestamps(o.ov),
 		DeepCopyTimestamp(o.uv)}
 }
 
@@ -157,13 +157,20 @@ func (o *Operation) AddAllTv(timestamps []Timestamp) {
 }
 
 // Returns a copy of the timestamp of the original operation o undoes (if operation o is an undo, otherwise nil).
-func (o *Operation) Ov() Timestamp {
-	return DeepCopyTimestamp(o.ov)
+func (o *Operation) Ov() []Timestamp {
+	return DeepCopyTimestamps(o.ov)
 }
 
 // Sets the timestamp ov of the operation o to a copy of t.
-func (o *Operation) SetOv(t Timestamp) {
-	o.ov = DeepCopyTimestamp(t)
+func (o *Operation) AddOv(t Timestamp) {
+	o.ov = append(o.ov, DeepCopyTimestamp(t))
+}
+
+// Appends a copy of the []Timestamp timestamps to o.ov.
+func (o *Operation) AddAllOv(timestamps []Timestamp) {
+	for _, t := range timestamps {
+		o.AddOv(t)
+	}
 }
 
 // Returns a copy of the timestamp of the operation that undoes o.
@@ -270,7 +277,7 @@ type PublicOperation struct {
 	V []PublicTimestamp
 	Dv []PublicTimestamp
 	Tv []PublicTimestamp
-	Ov PublicTimestamp
+	Ov []PublicTimestamp
 	Uv PublicTimestamp
 }
 
@@ -286,7 +293,7 @@ func OperationToPublicOperation(o Operation) PublicOperation {
 		TimestampsToPublicTimestamps(copy.V()),
 		TimestampsToPublicTimestamps(copy.Dv()),
 		TimestampsToPublicTimestamps(copy.Tv()),
-		TimestampToPublicTimestamp(copy.Ov()),
+		TimestampsToPublicTimestamps(copy.Ov()),
 		TimestampToPublicTimestamp(copy.Uv())}
 }
 
@@ -301,7 +308,7 @@ func publicOperationToOperation(publicOp PublicOperation) Operation {
 		PublicTimestampsToTimestamps(publicOp.V),
 		PublicTimestampsToTimestamps(publicOp.Dv),
 		PublicTimestampsToTimestamps(publicOp.Tv),
-		PublicTimestampToTimestamp(publicOp.Ov),
+		PublicTimestampsToTimestamps(publicOp.Ov),
 		PublicTimestampToTimestamp(publicOp.Uv)))
 }
 
