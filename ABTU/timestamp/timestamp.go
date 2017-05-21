@@ -95,6 +95,29 @@ func (t1 *Timestamp) Equals(t2 Timestamp) (bool, error) {
 	}
 }
 
+// Returns true if and only if the Timestamp t1 is causally ready at time currentSV and site siteId.
+// Returns and error if t1 ans currentSV have different sizes.
+// Does not modify t1 nor currentSV.
+
+func (t1 *Timestamp) IsCausallyReady(currentSV Timestamp, siteId SiteId) (bool, error) {
+	if t1.size!=currentSV.size {
+		return false, errors.New("Two Timestamps of different length cannot be compared")
+	} else {
+		t := t1.time
+		sv := currentSV.time
+
+		isCausallyReady := t[siteId] == sv[siteId]
+
+		for k:=uint64(0); k<t1.size; k++ {
+			if k != uint64(siteId) {
+				isCausallyReady = isCausallyReady && t[k] <= sv[k]
+			}
+		}
+
+		return isCausallyReady, nil
+	}
+}
+
 // Returns true if and only if the Timestamp t is contained in the Timestamp slice tSlice.
 // Returns an error if two compared Timestamps have different length.
 func (t *Timestamp) IsContainedIn(tSlice []Timestamp) (bool, error) {

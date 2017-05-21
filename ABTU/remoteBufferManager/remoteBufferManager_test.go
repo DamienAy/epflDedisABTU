@@ -68,29 +68,4 @@ func TestJustTryIt ( *testing.T) {
 
 }
 
-func OperationToPublicOp(o Operation) publicOp {
-	return publicOp{
-		o.Id(),
-		o.OpType(),
-		o.Pos(),
-		o.Char(),
-		o.V(),
-		o.Dv(),
-		o.Tv(),
-		o.Ov(),
-		o.Uv()}
-}
-
-// Same type as Operation but with public fields to allow for encoding with gob.
-type publicOp struct {
-	Id SiteId
-	OpType OpType
-	Position Position
-	Character Char
-	V []Timestamp
-	Dv []Timestamp
-	Tv []Timestamp
-	Ov Timestamp
-	Uv Timestamp
-}
 
