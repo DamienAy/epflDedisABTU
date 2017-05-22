@@ -11,9 +11,6 @@ type GetCausallyReadyOp struct {
 	Return chan Operation
 }
 
-type StopWaitingOp struct {
-}
-
 type RemoveRearrangeOp struct {
 	Ack chan bool
 }
@@ -26,29 +23,26 @@ type AddOp struct {
 type RemoteBufferManager struct {
 	Add chan AddOp
 	Get chan GetCausallyReadyOp
-	StopWaiting chan StopWaitingOp
 	RemoveRearrange chan RemoveRearrangeOp
 
 	rb []Operation
 	siteId SiteId
 
-	ABTUIsWaitingCausallyReadyOp bool
-	ABTUSV Timestamp
-	CausallyReadyOpRetChan chan Operation
+	aBTUIsWaitingCausallyReadyOp bool
+	aBTUSV Timestamp
+	causallyReadyOpRetChan chan Operation
 	currentCausallyReadyOperationIndex int
 }
 
 func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 	rbm.Add = make(chan AddOp)
 	rbm.Get = make(chan GetCausallyReadyOp)
-	// Needs to be buffered of size 1!
-	rbm.StopWaiting = make(chan StopWaitingOp, 1)
 	rbm.RemoveRearrange = make(chan RemoveRearrangeOp)
 
 	rbm.rb = DeepCopyOperations(rb)
 	rbm.siteId = siteId
 
-	rbm.ABTUIsWaitingCausallyReadyOp = false
+	rbm.aBTUIsWaitingCausallyReadyOp = false
 	rbm.currentCausallyReadyOperationIndex = -1;
 
 	go func () {
@@ -66,31 +60,34 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 					addOp.Ack <- true
 
 					// If ABTU is waiting for a causally ready operation, check againg.
-					if rbm.ABTUIsWaitingCausallyReadyOp {
+					if rbm.aBTUIsWaitingCausallyReadyOp {
 						causallyReadyOp, index := rbm.getFirstCausallyReadyOperation()
 						if index >= 0 {
 							rbm.currentCausallyReadyOperationIndex = index
-							rbm.CausallyReadyOpRetChan <- causallyReadyOp
-							rbm.ABTUIsWaitingCausallyReadyOp = false
+							select {
+							case rbm.causallyReadyOpRetChan <- causallyReadyOp:
+							default:
+							}
+							rbm.aBTUIsWaitingCausallyReadyOp = false
 						}
 					}
 				}
-			// Return a copy of rb
+			// Return the first causally ready operation if awailable. DeepCopy the timestamp
 			case getCausallyReadyOp := <- rbm.Get:
-				rbm.ABTUSV = getCausallyReadyOp.currentTime
+				rbm.aBTUSV = DeepCopyTimestamp(getCausallyReadyOp.currentTime)
 				causallyReadyOp, index := rbm.getFirstCausallyReadyOperation()
 
 				if index >= 0 {
 					rbm.currentCausallyReadyOperationIndex = index
-					rbm.CausallyReadyOpRetChan <- causallyReadyOp
-					rbm.ABTUIsWaitingCausallyReadyOp = false
+					select {
+					case rbm.causallyReadyOpRetChan <- causallyReadyOp:
+					default:
+					}
+					rbm.aBTUIsWaitingCausallyReadyOp = false
 				} else {
-					rbm.ABTUIsWaitingCausallyReadyOp = true
+					rbm.aBTUIsWaitingCausallyReadyOp = true
 				}
 
-			case <- rbm.StopWaiting:
-				rbm.ABTUIsWaitingCausallyReadyOp = false
-				close(rbm.CausallyReadyOpRetChan)
 
 			case removeRearrangeOp := <- rbm.RemoveRearrange:
 				if rbm.currentCausallyReadyOperationIndex>=len(rbm.rb) { // If one item has already been removed, discard any future removes.
@@ -108,7 +105,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 
 					rbm.rb = newBuffer
 
-					rbm.ABTUIsWaitingCausallyReadyOp = false
+					rbm.aBTUIsWaitingCausallyReadyOp = false
 
 					removeRearrangeOp.Ack <- true
 				}
@@ -125,7 +122,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 func (rbm *RemoteBufferManager) getFirstCausallyReadyOperation() (Operation, int){
 	for i:=0; i<len(rbm.rb) ; i++ {
 		for _, operationTimestamp := range rbm.rb[i].V() {
-			if operationTimestamp.IsCausallyReady(rbm.ABTUSV, rbm.siteId) {
+			if operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.siteId) {
 				return DeepCopyOperation(rbm.rb[i]), i
 			}
 		}

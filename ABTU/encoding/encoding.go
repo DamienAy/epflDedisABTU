@@ -6,13 +6,13 @@ import (
 )
 
 const (
-	localOp = "localOperation"
-	Undo = "undo"
-	AckRemoteOp = "ackRemoteOperation"
-	AckLocalOperation = "ackLocalOperation"
+	LocalOp       = "localOperation"
+	Undo          = "undo"
+	AckRemoteOp   = "ackRemoteOperation"
+	AckLocalOp    = "ackLocalOperation"
 	NackLocalUndo = "nackLocalUndo"
-	AckLocalUndo = "ackLocalUndo"
-	RemoteOp = "remoteOperation"
+	AckLocalUndo  = "ackLocalUndo"
+	RemoteOp      = "remoteOperation"
 )
 
 type FrontendMessage struct {

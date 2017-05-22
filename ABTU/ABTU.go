@@ -89,24 +89,35 @@ func (abtu *ABTUInstance) launchController() {
 	for ;; {
 		select {
 		case bytes :=  <- abtu.lIn:
-			var frontendMsg FrontendMessage
-			err := json.Unmarshal(bytes, frontendMsg)
-			if err != nil {
-				log.Fatal(errors.New("Could not decode frontendMessage:" + err.Error()))
-			}
-
-			if frontendMsg.Type == "localOperation" {
-				abtu.handleLocalOperation(frontendMsg.Content)
-			} else if frontendMsg.Type == "undoOperation" {
-				abtu.handleLocalUndo(frontendMsg.Content)
-			}
-
-
+			abtu.handleFrontendMessage(bytes)
 		default:
-		select {
-		case
+			causallyReadyOperationChannel := make(chan Operation)
+			abtu.rbm.Get <- GetCausallyReadyOp{abtu.sv, causallyReadyOperationChannel}
+
+			select {
+			case causallyReadyOp := <- causallyReadyOperationChannel:
+				abtu.handleCausallyReadyOperation(causallyReadyOp)
+			case bytes := <- abtu.lIn:
+				abtu.handleFrontendMessage(bytes)
+			}
 		}
-		}
+	}
+}
+
+func (abtu *ABTUInstance) handleFrontendMessage(bytes []byte) {
+	var frontendMsg FrontendMessage
+	err := json.Unmarshal(bytes, frontendMsg)
+	if err != nil {
+		log.Fatal(errors.New("Could not decode frontendMessage:" + err.Error()))
+	}
+
+	switch frontendMsg.Type {
+	case LocalOp:
+		abtu.handleLocalOperation(frontendMsg.Content)
+	case Undo:
+		abtu.handleLocalUndo(frontendMsg.Content)
+	default:
+		log.Fatal(errors.New("Unexpected message from frontend: " + frontendMsg.Type))
 	}
 }
 
@@ -118,7 +129,7 @@ func (abtu *ABTUInstance) handleLocalOperation(bytes []byte) {
 
 	toDispatchOp := abtu.LocalThread(localOp)
 
-	ackToSendFrontend, err := json.Marshal(FrontendMessage{AckLocalOperation, []byte{}})
+	ackToSendFrontend, err := json.Marshal(FrontendMessage{AckLocalOp, []byte{}})
 	if err != nil {
 		log.Fatal(errors.New("Could not send ackLocalOperation, Json encoding failed :" + err.Error()))
 	}
@@ -173,5 +184,52 @@ func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
 		// Dispatch to other peers
 		abtu.rOut <- toDispatchOp
 	}
+}
 
+func (abtu *ABTUInstance) handleCausallyReadyOperation(causallyReadyOp Operation){
+	toExecuteOp, h, sv := abtu.RemoteThread(causallyReadyOp)
+
+	if toExecuteOp.OpType() != UNIT {
+		frontendOp, err := json.Marshal(OperationToFrontendOperation(toExecuteOp))
+		if err != nil {
+			log.Fatal(errors.New("Could not encode simple operation:" + err.Error()))
+		}
+
+		remoteOperation, err := json.Marshal(FrontendMessage{RemoteOp, frontendOp})
+		if err != nil {
+			log.Fatal(errors.New("Could not send remoteOperation, Json encoding failed :" + err.Error()))
+		}
+
+		// Execute locally
+		abtu.lOut <- remoteOperation
+
+		frontendBytes := <- abtu.lIn
+
+		var frontendMsg FrontendMessage
+		err = json.Unmarshal(frontendBytes, frontendMsg)
+		if err != nil {
+			log.Fatal(errors.New("Could not decode frontendMessage:" + err.Error()))
+		}
+
+		switch frontendMsg.Type {
+		case LocalOp:
+			abtu.handleLocalOperation(frontendMsg.Content)
+		case Undo:
+			abtu.handleLocalUndo(frontendMsg.Content)
+		case AckRemoteOp:
+			abtu.sv = sv
+			abtu.h = h
+
+			ack := make(chan bool)
+			abtu.rbm.RemoveRearrange <- RemoveRearrangeOp{ack}
+			<- ack
+		}
+	} else { // Operation is unit, we do not need to apply it, but we need to integrate effects in H and SV
+		abtu.sv = sv
+		abtu.h = h
+
+		ack := make(chan bool)
+		abtu.rbm.RemoveRearrange <- RemoveRearrangeOp{ack}
+		<- ack
+	}
 }
