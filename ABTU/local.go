@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 )
 
-
+// Decodes local operation from bytes, and executes local thread algorithm
 func (abtu *ABTUInstance) LocalThread(bytes []byte) error {
 
 	localOp, err := DecodeFrontend(bytes, abtu.id)
@@ -41,11 +41,12 @@ func (abtu *ABTUInstance) LocalThread(bytes []byte) error {
 	return nil
 }
 
+// Decodes local undo operation from toUndo, and executes local thread algorithm.
 func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) error {
 	// Need to find undo op in H
 	toUndoOp := &abtu.h[toUndo]
 
-	if toUndoOp.Uv().Size()!= 0 || len(toUndoOp.Dv())!=0 {
+	if toUndoOp.Uv()!=nil || len(toUndoOp.Dv())!=0 {
 		// If operation has allready been undone or some other operation is dependent on this one.
 		return errors.New("Operation cannot be undone.")
 	} else {
@@ -59,7 +60,7 @@ func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) error {
 		undoOp.AddV(abtu.sv)
 		undoOp.AddAllOv(toUndoOp.V())
 		//Need to find undo op in H
-		toUndoOp.SetUv(abtu.sv)
+		toUndoOp.AddUv(abtu.sv)
 
 		UndoFrontendOperation, err := json.Marshal(OperationToFrontendOperation(undoOp))
 		if err != nil {
@@ -87,6 +88,8 @@ func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) error {
 	return nil
 }
 
+// Executes IntegrateL algorithm: integrate toIntegrateOp into the history buffer and updates all timestamps and positions.
+// Does not make any changes on toIntegrateOp.
 func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation{
 	localOp := DeepCopyOperation(toIntegrateOp)
 

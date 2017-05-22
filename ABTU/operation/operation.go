@@ -18,7 +18,7 @@ type Operation struct {
 	dv []Timestamp
 	tv []Timestamp
 	ov []Timestamp
-	uv Timestamp
+	uv []Timestamp
 }
 
 // Returns a new Operation, copies all arguments.
@@ -31,7 +31,7 @@ func NewOperation(
 	dv []Timestamp,
 	tv []Timestamp,
 	ov []Timestamp,
-	uv Timestamp) Operation {
+	uv []Timestamp) Operation {
 	return Operation{
 		id,
 		opType,
@@ -41,7 +41,7 @@ func NewOperation(
 		DeepCopyTimestamps(dv),
 		DeepCopyTimestamps(tv),
 		DeepCopyTimestamps(ov),
-		DeepCopyTimestamp(uv)}
+		DeepCopyTimestamps(uv)}
 }
 
 // Returns a new operation.
@@ -122,6 +122,13 @@ func (o *Operation) AddV(t Timestamp) {
 	o.v = append(o.v, DeepCopyTimestamp(t))
 }
 
+// Appends a copy of the []Timestamp timestamps to o.v.
+func (o *Operation) AddAllV(timestamps []Timestamp) {
+	for _, t := range timestamps {
+		o.AddV(t)
+	}
+}
+
 // Returns a copy of the slice containing the timestamps of operations that depend on operation o.
 func (o *Operation) Dv() []Timestamp {
 	return DeepCopyTimestamps(o.dv)
@@ -174,13 +181,20 @@ func (o *Operation) AddAllOv(timestamps []Timestamp) {
 }
 
 // Returns a copy of the timestamp of the operation that undoes o.
-func (o *Operation) Uv() Timestamp {
-	return DeepCopyTimestamp(o.uv)
+func (o *Operation) Uv() []Timestamp {
+	return DeepCopyTimestamps(o.uv)
 }
 
 // Sets the timestamp uv of the operation o to a copy of t.
-func (o *Operation) SetUv(t Timestamp) {
-	o.uv = DeepCopyTimestamp(t)
+func (o *Operation) AddUv(t Timestamp) {
+	o.uv = append(o.uv, DeepCopyTimestamp(t))
+}
+
+// Appends a copy of the []Timestamp timestamps to o.uv.
+func (o *Operation) AddAllUv(timestamps []Timestamp) {
+	for _, t := range timestamps {
+		o.AddUv(t)
+	}
 }
 
 // Returns true if and only if operation o1 happened before operation o2.
@@ -278,7 +292,7 @@ type PublicOperation struct {
 	Dv []PublicTimestamp
 	Tv []PublicTimestamp
 	Ov []PublicTimestamp
-	Uv PublicTimestamp
+	Uv []PublicTimestamp
 }
 
 // Returns the PublicOperation corresponding to the Operation o
@@ -286,15 +300,15 @@ type PublicOperation struct {
 func OperationToPublicOperation(o Operation) PublicOperation {
 	copy := DeepCopyOperation(o)
 	return PublicOperation{
-		copy.Id(),
-		copy.OpType(),
-		copy.Pos(),
-		copy.Char(),
-		TimestampsToPublicTimestamps(copy.V()),
-		TimestampsToPublicTimestamps(copy.Dv()),
-		TimestampsToPublicTimestamps(copy.Tv()),
-		TimestampsToPublicTimestamps(copy.Ov()),
-		TimestampToPublicTimestamp(copy.Uv())}
+		copy.id,
+		copy.opType,
+		copy.position,
+		copy.character,
+		TimestampsToPublicTimestamps(copy.v),
+		TimestampsToPublicTimestamps(copy.dv),
+		TimestampsToPublicTimestamps(copy.tv),
+		TimestampsToPublicTimestamps(copy.ov),
+		TimestampsToPublicTimestamps(copy.uv)}
 }
 
 // Returns the Operation corresoponding to the PublicOperation publicOP.
@@ -309,7 +323,7 @@ func publicOperationToOperation(publicOp PublicOperation) Operation {
 		PublicTimestampsToTimestamps(publicOp.Dv),
 		PublicTimestampsToTimestamps(publicOp.Tv),
 		PublicTimestampsToTimestamps(publicOp.Ov),
-		PublicTimestampToTimestamp(publicOp.Uv)))
+		PublicTimestampsToTimestamps(publicOp.Uv)))
 }
 
 // Represents an operation as sent to frontend.

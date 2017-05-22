@@ -8,21 +8,25 @@ import (
 
 type GetCausallyReadyOp struct {
 	currentTime Timestamp
-	Ret chan Operation
+	Return chan Operation
+}
+
+type StopWaitingOp struct {
 }
 
 type RemoveRearrangeOp struct {
-	Ret chan bool
+	Ack chan bool
 }
 
 type AddOp struct {
 	Operation Operation
-	Ret chan bool
+	Ack chan bool
 }
 
 type RemoteBufferManager struct {
 	Add chan AddOp
 	Get chan GetCausallyReadyOp
+	StopWaiting chan StopWaitingOp
 	RemoveRearrange chan RemoveRearrangeOp
 
 	rb []Operation
@@ -37,6 +41,8 @@ type RemoteBufferManager struct {
 func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 	rbm.Add = make(chan AddOp)
 	rbm.Get = make(chan GetCausallyReadyOp)
+	// Needs to be buffered of size 1!
+	rbm.StopWaiting = make(chan StopWaitingOp, 1)
 	rbm.RemoveRearrange = make(chan RemoveRearrangeOp)
 
 	rbm.rb = DeepCopyOperations(rb)
@@ -54,10 +60,10 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 			case addOp, notDone := <- rbm.Add:
 				if !notDone {
 					cont = false
-					addOp.Ret <-false
+					addOp.Ack <-false
 				} else {
 					rbm.rb = append(rbm.rb, DeepCopyOperation(addOp.Operation))
-					addOp.Ret <- true
+					addOp.Ack <- true
 
 					// If ABTU is waiting for a causally ready operation, check againg.
 					if rbm.ABTUIsWaitingCausallyReadyOp {
@@ -82,9 +88,13 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 					rbm.ABTUIsWaitingCausallyReadyOp = true
 				}
 
+			case <- rbm.StopWaiting:
+				rbm.ABTUIsWaitingCausallyReadyOp = false
+				close(rbm.CausallyReadyOpRetChan)
+
 			case removeRearrangeOp := <- rbm.RemoveRearrange:
 				if rbm.currentCausallyReadyOperationIndex>=len(rbm.rb) { // If one item has already been removed, discard any future removes.
-					removeRearrangeOp.Ret <- false
+					removeRearrangeOp.Ack <- false
 				} else {
 					newBuffer := make([]Operation, len(rbm.rb)-1)
 
@@ -100,7 +110,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 
 					rbm.ABTUIsWaitingCausallyReadyOp = false
 
-					removeRearrangeOp.Ret <- true
+					removeRearrangeOp.Ack <- true
 				}
 			}
 		}

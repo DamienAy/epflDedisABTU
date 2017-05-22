@@ -2,146 +2,134 @@ package ABTU
 
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 )
 
-func PutInReceivingBuffer(o Operation) {
-	RBLock.Lock()
-	RB = append(RB, o)
-	RBLock.Unlock()
-}
+// Executes remotethread algorithm with remoteOperation and returns the operation to execute locally.
+// Returns the resulting history buffer and local timestamp SV without affecting abtu.h and abtu.sv
+func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []Operation, Timestamp){
+	remoteOp := DeepCopyOperation(remoteOperation)
+	H := DeepCopyOperations(abtu.h)
+	SV := DeepCopyTimestamp(abtu.sv)
 
-func CheckForReadyRemote() Operation {
-	RBLock.Lock()
-	lock.Lock()
-	for i:=0 ; i<len(RB) ; i++ {
-		o := RB[i]
-		ov := o.GetV()[0]
-		p1 := true
-		for k, n := range ov {
-			p1 = p1 && n<=SV[k]
-		}
-		if o.GetV()[0][i] == SV[o.GetId()]{
-			if p1 {
-				return o
-			}
-		}
-	}
-	lock.Lock()
-	RBLock.Unlock()
-}
-
-func RemoteThread(o Operation) {
-	RBLock.Lock()
-
-	RBLock.Unlock()
-	lock.Lock()
-	if o.GetOv() == nil {
+	if remoteOp.Ov() != nil { // remoteOp is undo.
 		var i int
-		for index, h := range H {
-			if o.GetOv().IsContainedIn(h.GetV()) {
-				i = index
+		for k:=0; k<len(H); k++ {
+			if IntersectionIsNotEmpty(H[k].V(), remoteOp.Ov()) {
+				i = k
 				break
 			}
 		}
 
-		if H[i].GetUv() != nil { // H[i] has already been undone => merge two operations
+		if H[i].Uv()!=nil { // H[i] has already been undone => merge two operations
 			var j int
-			for index, h := range H {
-				if o.GetUv().IsContainedIn(h.GetV()) {
-					j = index
+			for k:=0; k<len(H); k++ {
+				if IntersectionIsNotEmpty(H[k].V(), remoteOp.Uv()) {
+					i = k
 					break
 				}
 			}
-			H[j].AddV(o.GetV()[0]) // okey to add only first?????
-			SV[o.GetId()]++
-			return
-		} else {
-			H[i].SetUv(&(o.GetV()[0]))
-			//o.set//----------------------------------------------------
 
+			H[j].AddAllV(remoteOp.V())
+			SV.Increment(remoteOp.Id())
+
+			return PartialOperation(abtu.id, UNIT, 0, 0), H, SV
+
+		} else {
+			H[i].AddAllUv(remoteOp.Uv())
+			remoteOp.AddAllOv(H[i].V())
 		}
 	}
-	o2 := IntegrateR(o)
-	SV[o.GetPos()]++
-	if o2.GetOpType()!= UNIT {
-		Execute(o2)
-	}
 
-	lock.Unlock()
+	toExecuteLocallyOp, H := IntegrateR(remoteOp, H)
+
+	SV.Increment(remoteOp.Id())
+
+	return toExecuteLocallyOp, H, SV
 }
 
+// Executes integrateR algortithm, does not modify toIntegrateRemoteOp
+// Returns the operation to integrate (only if type!=UNIT) and the updated history buffer.
+func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation) (Operation, []Operation) {
+	toIntegrateRemoteOp := DeepCopyOperation(toIntegrateRemoteOperation)
+	H := historyBuffer
 
-func IntegrateR(o Operation) Operation {
+
 	k := len(H)
 
-	if len(o.GetTv()) == 0 {
-		for i, h := range H {
-			if h.IsConcurrentWith(o) {
+	if toIntegrateRemoteOp.Tv()==nil {
+		for i:=0; i<len(H); i++ {
+			if H[i].IsConcurrentWith(toIntegrateRemoteOp) {
 				var offset Position
-				if o.GetOpType() == INS {
+				if toIntegrateRemoteOp.OpType() == INS {
 					offset = 1
 				} else {
 					offset = -1
 				}
 
-				if len(h.GetTv())!=0 || h.IsSmallerC(o) {
-					o.SetPos(o.GetPos()+offset)
-				} else if h.IsGreaterC(o) {
+				if H[i].Tv()!=nil || H[i].IsSmallerC(toIntegrateRemoteOp) {
+					toIntegrateRemoteOp.SetPos(toIntegrateRemoteOp.Pos()+offset)
+				} else if H[i].IsGreaterC(toIntegrateRemoteOp) {
 					k = i
 					break
-				} else { //h = o
-					o.SetToUnit()
-					h.AddV(o.GetV()[0]) // okey to add only first ??????????
+				} else { //H[i] == toIntegrateRemoteOp.
+					toIntegrateRemoteOp.SetToUnit()
+					H[i].AddAllV(toIntegrateRemoteOp.V())
 					break
 				}
-			} else if h.IsGreaterC(o) {
+
+			} else if H[i].IsGreaterC(toIntegrateRemoteOp) { // H[i].happenedBefore(toIntegrateRemoteOp) holds.
 				k = i
 				break
 			}
 		}
-	} else { //o.tv is not empty, also covers undo case
+	} else { //toIntegrateRemoteOp.tv is not empty, also covers undo case
 		var i int
-		for index := range H {
-			if true { //////o.GetTv().IsContainedIn(h.GetV())
-				i = index
+		for j:=0; j<len(H); j++ {
+			if IntersectionIsNotEmpty(H[k].V(), toIntegrateRemoteOp.Tv()) {
+				i = j
 				break
 			}
 		}
-		o.SetPos(H[i].GetPos())
+
+		toIntegrateRemoteOp.SetPos(H[i].Pos())
 		k = i + 1
 
 		//for ;  ; {//sort it out!!!
-		{
-			if H[k].IsSmallerC(o){
+		for ; IntersectionIsNotEmpty(H[k].Tv(), H[i].V()); {
+			if H[k].IsSmallerC(toIntegrateRemoteOp){
 				var offset Position
-				if H[k].GetOpType() == INS {
+				if H[k].OpType() == INS {
 					offset = 1
 				} else {
 					offset = -1
 				}
-				o.SetPos(o.GetPos()+offset)
-			} else if H[k].IsGreaterC(o) {
-				//break
+
+				toIntegrateRemoteOp.SetPos(toIntegrateRemoteOp.Pos()+offset)
+
+			} else if H[k].IsGreaterC(toIntegrateRemoteOp) {
+				break
 			} else {
-				o.SetToUnit()
-				H[k].AddV(o.GetV()[0]) //okey to add only first???
-				//break
+				toIntegrateRemoteOp.SetToUnit()
+				H[k].AddAllV(toIntegrateRemoteOp.V())
+				break
 			}
+
 			k++
 		}
 	}
 
-	if o.GetOpType() != UNIT {
+	if toIntegrateRemoteOp.OpType() != UNIT {
 		var offset Position
-		if o.GetOpType() == INS {
+		if toIntegrateRemoteOp.OpType() == INS {
 			offset = 1
 		} else {
 			offset = -1
 		}
 
 		for j:=k; j<=len(H); j++ {
-			H[j].SetPos(H[j].GetPos()+offset)
+			H[j].SetPos(H[j].Pos()+offset)
 		}
 
 		newH := make([]Operation, len(H)+1)
@@ -150,14 +138,12 @@ func IntegrateR(o Operation) Operation {
 			if index < k {
 				newH[index] = H[index]
 			} else if index == k {
-				newH[index] = o
+				newH[index] = toIntegrateRemoteOp
 			} else {
 				newH[index] = H[index-1]
 			}
 		}
 
-		H = newH
-
-		return o
+		return toIntegrateRemoteOp, newH
 	}
 }
