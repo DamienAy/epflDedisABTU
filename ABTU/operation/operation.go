@@ -346,7 +346,7 @@ func OperationToFrontendOperation(operation Operation) FrontendOperation {
 
 // Returns the encoding in json format (frontend) corresponding to the operation o.
 // Returns an error if the encoding failed.
-func (o *Operation) EncodeFrontend() ([]byte, error) {
+func (o *Operation) EncodeToFrontend() ([]byte, error) {
 	bytes, err := json.Marshal(&OperationToFrontendOperation(*o))
 	if err != nil {
 		return nil, errors.New("Json encoding failed :" + err.Error())
@@ -357,7 +357,7 @@ func (o *Operation) EncodeFrontend() ([]byte, error) {
 
 // Returns the operation corresponding to the json encoding of a frontendOperation.
 // Returns an error if the decoding failed.
-func DecodeFrontend(bytes []byte, siteId SiteId) (Operation, error) {
+func DecodeFromFrontend(bytes []byte, siteId SiteId) (Operation, error) {
 	var frontendOperation FrontendOperation
 
 	err := json.Unmarshal(bytes, &frontendOperation)
@@ -371,7 +371,7 @@ func DecodeFrontend(bytes []byte, siteId SiteId) (Operation, error) {
 
 // Returns the encoding in json format (for peers) corresponding to the operation o.
 // Returns an error if the encoding failed.
-func (o *Operation) EncodePeers() ([]byte, error) {
+func (o *Operation) EncodeToPeers() ([]byte, error) {
 	bytes, err := json.Marshal(OperationToPublicOperation(*o))
 	if err != nil {
 		return nil, errors.New("Json encoding failed :" + err.Error())
@@ -382,7 +382,7 @@ func (o *Operation) EncodePeers() ([]byte, error) {
 
 // Returns the operation corresponding to the json encoding of a publicOperation.
 // Returns an error if the decoding failed.
-func DecodePeers(bytes []byte) (Operation, error) {
+func DecodeFromPeers(bytes []byte) (Operation, error) {
 	var publicOperation PublicOperation
 
 	err := json.Unmarshal(bytes, &publicOperation)

@@ -10,6 +10,7 @@ const (
 	Undo = "undo"
 	AckRemoteOp = "ackRemoteOperation"
 	AckLocalOperation = "ackLocalOperation"
+	NackLocalUndo = "nackLocalUndo"
 	AckLocalUndo = "ackLocalUndo"
 	RemoteOp = "remoteOperation"
 )

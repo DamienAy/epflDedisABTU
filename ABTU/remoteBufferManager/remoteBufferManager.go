@@ -60,7 +60,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 			case addOp, notDone := <- rbm.Add:
 				if !notDone {
 					cont = false
-					addOp.Ack <-false
+					//addOp.Ack <-false
 				} else {
 					rbm.rb = append(rbm.rb, DeepCopyOperation(addOp.Operation))
 					addOp.Ack <- true

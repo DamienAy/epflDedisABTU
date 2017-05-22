@@ -7,52 +7,32 @@ import (
 	"errors"
 	enc "github.com/DamienAy/epflDedisABTU/ABTU/encoding"
 	"encoding/json"
+	"log"
 )
 
-// Decodes local operation from bytes, and executes local thread algorithm
-func (abtu *ABTUInstance) LocalThread(bytes []byte) error {
-
-	localOp, err := DecodeFrontend(bytes, abtu.id)
-	if err != nil {
-		return errors.New("Cannot decode local operation: " + err.Error())
-	}
+// Executes local thread algorithm, does not make any changes to localOperation
+func (abtu *ABTUInstance) LocalThread(localOperation Operation) Operation {
+	localOp := DeepCopyOperation(localOperation)
 
 	abtu.sv.Increment(abtu.id)
 
 	localOp.AddV(abtu.sv)
 
-	ackToSendFrontend, err := json.Marshal(enc.FrontendMessage{enc.AckLocalOperation, []byte{}})
-	if err != nil {
-		return errors.New("Could not send ackLocalOperation, Json encoding failed :" + err.Error())
-	}
-
-	// Execute locally
-	abtu.lOut <- ackToSendFrontend
-
-	operationToDispatch := abtu.IntegrateL(localOp)
-
-	bytesToDispatch, err := operationToDispatch.EncodePeers()
-	if err != nil {
-		return errors.New("Cannot send operation to rOut:" + err.Error())
-	}
-
-	abtu.rOut <- bytesToDispatch
-
-	return nil
+	return abtu.IntegrateL(localOp)
 }
 
 // Decodes local undo operation from toUndo, and executes local thread algorithm.
-func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) error {
+func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) Operation {
 	// Need to find undo op in H
 	toUndoOp := &abtu.h[toUndo]
 
 	if toUndoOp.Uv()!=nil || len(toUndoOp.Dv())!=0 {
 		// If operation has allready been undone or some other operation is dependent on this one.
-		return errors.New("Operation cannot be undone.")
+		return PartialOperation(abtu.id, UNIT, 0, 0)
 	} else {
 		undoOp, err := toUndoOp.GetInverse(abtu.id)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 
 		abtu.sv.Increment(abtu.id)
@@ -62,35 +42,13 @@ func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) error {
 		//Need to find undo op in H
 		toUndoOp.AddUv(abtu.sv)
 
-		UndoFrontendOperation, err := json.Marshal(OperationToFrontendOperation(undoOp))
-		if err != nil {
-			return errors.New("Could not encode simple operation:" + err.Error())
-		}
-
-		ackLocalUndo, err := json.Marshal(enc.FrontendMessage{enc.AckLocalUndo, UndoFrontendOperation})
-		if err != nil {
-			return errors.New("Could not send ackLocalUndo, Json encoding failed :" + err.Error())
-		}
-
-		// Execute locally
-		abtu.lOut <- ackLocalUndo
-
-		operationToDispatch := abtu.IntegrateL(undoOp)
-
-		bytesToDispatch, err := operationToDispatch.EncodePeers()
-		if err != nil {
-			return errors.New("Cannot send operation to rOut:" + err.Error())
-		}
-
-		abtu.rOut <- bytesToDispatch
+		return abtu.IntegrateL(undoOp)
 	}
-
-	return nil
 }
 
 // Executes IntegrateL algorithm: integrate toIntegrateOp into the history buffer and updates all timestamps and positions.
 // Does not make any changes on toIntegrateOp.
-func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation{
+func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
 	localOp := DeepCopyOperation(toIntegrateOp)
 
 	k := len(abtu.h)

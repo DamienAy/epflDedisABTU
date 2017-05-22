@@ -9,6 +9,9 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"time"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/remoteBufferManager"
+	"errors"
+	"encoding/json"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/encoding"
 )
 
 type ABTUInstance struct {
@@ -17,8 +20,6 @@ type ABTUInstance struct {
 	h []Operation // history buffer, sorted in effect relation order
 	rbm RemoteBufferManager // receiving buffer for remote operations
 	lh []Operation // history of local operations for undo.
-
-	//manager chan string // channel to manage the instance (stop, etc...)
 
 	lIn chan []byte // channel for receiving from local frontend
 	lOut chan []byte // channel for sending to local frontend
@@ -35,9 +36,7 @@ func Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) *ABTUInstance 
 
 	abtu.h = DeepCopyOperations(h)
 
-	abtu.rbm.Start(rb)
-
-	//abtu.manager = make(chan string, 2)
+	abtu.rbm.Start(rb, abtu.id)
 
 	abtu.lIn = make(chan []byte, 20)
 	abtu.lOut = make(chan []byte, 20)
@@ -58,43 +57,121 @@ func (abtu *ABTUInstance) Stop(){
 }
 
 func (abtu *ABTUInstance) run() {
-	for {
+	go abtu.listenToRemote()
+
+	go abtu.launchController()
+}
+
+func (abtu *ABTUInstance) listenToRemote() {
+	more := true
+	var bytes []byte
+
+	for ;more ; {
 		select {
-		case localOperation, notDone := <- abtu.lIn:
-			if notDone {}
-			abtu.LocalThread(localOperation)
+		case bytes, more = <- abtu.rIn:
+			if more {
+				remoteOp, err := DecodeFromPeers(bytes)
+				if err!=nil {
+					log.Fatal(err)
+				}
+
+				ack := make(chan bool)
+				abtu.rbm.Add <- AddOp{remoteOp, ack}
+				<- ack
+			} else {
+				close(abtu.rbm.Add)
+			}
 		}
 	}
 }
 
-func (abtu *ABTUInstance) listenToRemote() {
-	for {
-		remoteOperation, done := <- abtu.rIn
-		if done {}
-		ack := make(chan bool)
-		abtu.rbm.Add <- AddOp{remoteOperation, ack}
-		<-ack
-	}
-}
-
 func (abtu *ABTUInstance) launchController() {
+	for ;; {
+		select {
+		case bytes :=  <- abtu.lIn:
+			var frontendMsg FrontendMessage
+			err := json.Unmarshal(bytes, frontendMsg)
+			if err != nil {
+				log.Fatal(errors.New("Could not decode frontendMessage:" + err.Error()))
+			}
 
-}
+			if frontendMsg.Type == "localOperation" {
+				abtu.handleLocalOperation(frontendMsg.Content)
+			} else if frontendMsg.Type == "undoOperation" {
+				abtu.handleLocalUndo(frontendMsg.Content)
+			}
 
 
-
-
-
-func printOp(o Operation){
-	log.Println(time.Now())
-
-	var ok string
-	fmt.Scanln(&ok)
-}
-
-func check(err error) {
-	if err != nil {
-		log.Fatal(err)
+		default:
+		select {
+		case
+		}
+		}
 	}
 }
 
+func (abtu *ABTUInstance) handleLocalOperation(bytes []byte) {
+	localOp, err := DecodeFromFrontend(bytes, abtu.id)
+	if err != nil {
+		log.Fatal(errors.New("Cannot decode local operation: " + err.Error()))
+	}
+
+	toDispatchOp := abtu.LocalThread(localOp)
+
+	ackToSendFrontend, err := json.Marshal(FrontendMessage{AckLocalOperation, []byte{}})
+	if err != nil {
+		log.Fatal(errors.New("Could not send ackLocalOperation, Json encoding failed :" + err.Error()))
+	}
+
+	// Execute locally
+	abtu.lOut <- ackToSendFrontend
+
+	bytesToDispatch, err := toDispatchOp.EncodeToPeers()
+	if err != nil {
+		log.Fatal(errors.New("Cannot send operation to rOut:" + err.Error()))
+	}
+
+	abtu.rOut <- bytesToDispatch
+}
+
+func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
+	var toUndo uint64
+	err := json.Unmarshal(bytes, toUndo)
+	if err != nil {
+		log.Fatal(errors.New("Cannot decode local undo: " + err.Error()))
+	}
+
+	toExecuteOp := abtu.LocalThreadUndo(toUndo)
+
+
+	if toExecuteOp.OpType() == UNIT {
+		nackLocalUndo, err := json.Marshal(FrontendMessage{NackLocalUndo, []byte{}})
+		if err != nil {
+			log.Fatal(errors.New("Cannot encode nacklocalundo: " + err.Error()))
+		}
+
+		abtu.lOut <- nackLocalUndo
+	} else {
+		undoFrontendOp, err := json.Marshal(OperationToFrontendOperation(toExecuteOp))
+		if err != nil {
+			log.Fatal(errors.New("Could not encode simple operation:" + err.Error()))
+		}
+
+		ackLocalUndo, err := json.Marshal(FrontendMessage{AckLocalUndo, undoFrontendOp})
+		if err != nil {
+			log.Fatal(errors.New("Could not send ackLocalUndo, Json encoding failed :" + err.Error()))
+		}
+
+		// Execute locally
+		abtu.lOut <- ackLocalUndo
+
+		toDispatchOp, err := toExecuteOp.EncodeToPeers()
+		if err != nil {
+			log.Fatal(errors.New("Cannot send operation to rOut:" + err.Error()))
+		}
+
+		// Dispatch to other peers
+		abtu.rOut <- toDispatchOp
+	}
+
+}
