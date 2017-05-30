@@ -21,6 +21,7 @@ const (
 	frontendPath = "/Users/knikitin/projects/peer-to-peer-doc-editing"
 )
 
+
 // A structure to communicate with frontend and store documents
 type Management struct {
 	// Channels to communicate between frontend and management
@@ -34,6 +35,7 @@ type Management struct {
 	isDocumentOpen chan bool
 }
 
+
 // Returns a pointer to a new Management structure
 func newManagement() *Management {
 	return &Management{
@@ -42,6 +44,7 @@ func newManagement() *Management {
 		doc: nil,
 	}
 }
+
 
 ///* Message type to communicate with the front-end*/
 //type ControlMessage struct {
@@ -57,19 +60,8 @@ func newManagement() *Management {
 //	return msg, nil
 //}
 
-func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
-	ws, err := websocket.Upgrade(w, r, w.Header(), maxMessageSize, maxMessageSize)
-	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
-		return
-	}
-	fmt.Println("Frontend connected")
 
-	go mgmt.handleControlMessages(ws)
-}
-
-
-func (mgmt *Management) handleControlMessages(ws *websocket.Conn) {
+//func (mgmt *Management) handleControlMessages(ws *websocket.Conn) {
 //	var cm ControlMessage
 //	for {
 //		_, message, err := ws.ReadMessage()
@@ -114,7 +106,36 @@ func (mgmt *Management) handleControlMessages(ws *websocket.Conn) {
 //			log.Println("Wrong control message type:", cm.Event)
 //		}
 //	}
+//}
+
+
+func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
+	ws, err := websocket.Upgrade(w, r, w.Header(), maxMessageSize, maxMessageSize)
+	if err != nil {
+		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		return
+	}
+	log.Println("Frontend connected to websocket")
+
+	// Writing messages to the connection
+	go func() {
+		message := <- mgmt.doc.MgmtToFrontend
+		// BinaryMessage =2 denotes a binary data message
+		ws.WriteMessage(2, message)
+	}()
+
+	for {
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		mgmt.doc.FrontendToMgmt <- message
+	}
 }
+
 
 func initDocument() *document.Document {
 	//// TODO
@@ -173,6 +194,7 @@ func main() {
 	if err := http.ListenAndServe(":" + strconv.Itoa(defaultListenPort), nil); err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
+	fmt.Printf("Go to http://localhost:%v in your browser to access frontend\n", defaultListenPort)
 
 	for {
 		select {
