@@ -10,7 +10,7 @@ import (
 	"log"
 	"github.com/gorilla/websocket"
 	"net/http"
-	//"encoding/json"
+	"encoding/json"
 	"strconv"
 	"path/filepath"
 )
@@ -46,67 +46,40 @@ func newManagement() *Management {
 }
 
 
-///* Message type to communicate with the front-end*/
-//type ControlMessage struct {
-//	Event string
-//	Content []byte
-//}
+/* Message type to communicate with the front-end and other peers*/
+type collaborationMessage struct {
+	Event string `json:"Event"`
+	Content []byte `json:"Content"`
+}
 
-//func NewControlMessage (event string, content []byte) (*ControlMessage, error) {
-//	msg := &ControlMessage{
-//		Event: event,
-//		Content: content,
-//	}
-//	return msg, nil
-//}
+/* A function returning a new instance of collaborationMessage */
+func newCollaborationMessage(event string, content []byte) *collaborationMessage {
+	msg := &collaborationMessage{
+		Event: event,
+		Content: content,
+	}
+	return msg
+}
 
 
-//func (mgmt *Management) handleControlMessages(ws *websocket.Conn) {
-//	var cm ControlMessage
-//	for {
-//		_, message, err := ws.ReadMessage()
-//		if err != nil {
-//			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-//				log.Printf("error: %v", err)
-//			}
-//			break
-//		}
-//
-//		/*Unmarshal the control message { Event: "...", Content: []byte} */
-//		err = json.Unmarshal(message, &cm)
-//		if err != nil {
-//			log.Println("Couldn't decode a management message from frontend:", err)
-//		}
-//
-//		switch cm.Event {
-//		case cm.Event != "Document":
-//			var dm DocumentMessage
-//			var dst interface{}
-//
-//			if err := json.Unmarshal(cm.Content, &dm); err != nil {
-//				log.Println("Couldn't decode a document message from frontend:", err)
-//			}
-//
-//			switch dm.Type {
-//			case "OpenDocument":
-//				dst = new(DocumentToOpen)
-//				if err := json.Unmarshal(dm.Content, dst); err != nil {
-//					log.Println("Couldn't decode a content of OpenDocument message:", err)
-//				}
-//			case "CloseDocument":
-//				dst = new(DocumentToClose)
-//				if err := json.Unmarshal(dm.Content, dst); err != nil {
-//					log.Println("Couldn't decode a content of CloseDocument message:", err)
-//				}
-//			default:
-//				log.Println("Unknown type of document message:", dm.Type)
-//
-//			}
-//		default:
-//			log.Println("Wrong control message type:", cm.Event)
-//		}
-//	}
-//}
+/*Handles messages received from the frontend, either to be sent to an ABTU instance, an access control
+message or other*/
+func (mgmt *Management) handleFrontendMessage(received []byte) {
+	var cm collaborationMessage
+	err := json.Unmarshal(received, &cm)
+	if err != nil {
+		log.Println("Error while unmarshalling collaborationMessage:", err)
+	}
+
+	switch cm.Event {
+	case "ABTU":
+		mgmt.doc.FrontendToABTU <- cm.Content
+	case "AccessControl":
+	//	TODO Handle access control messages
+	case "Cursor":
+	//	TODO Handle cursor messages
+	}
+}
 
 
 func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
@@ -119,20 +92,20 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	// Writing messages to the connection
 	go func() {
-		message := <- mgmt.doc.MgmtToFrontend
+		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
-		ws.WriteMessage(2, message)
+		ws.WriteMessage(2, m2write)
 	}()
 
 	for {
-		_, message, err := ws.ReadMessage()
+		_, m2read, err := ws.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		mgmt.doc.FrontendToMgmt <- message
+		mgmt.doc.FrontendToMgmt <- m2read
 	}
 }
 
@@ -167,7 +140,7 @@ func serveHome(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filepath.Join(frontendPath, r.URL.EscapedPath()))
 
 
-	/* Currently, creates a document now when a user first time goes to Home
+	/* Currently, creates a document when a user first time goes to Home
 	and keeps it open all the time.
 	Future: a new document is created and ABTU instance is run
 	when a user opens a document (requested from a db),
@@ -204,23 +177,22 @@ func main() {
 				log.Panicln("Received request to close a doc when none is opened")
 			}
 		}
+
 		select {
-		case message := <- mgmt.doc.FrontendToMgmt:
+		case received := <- mgmt.doc.FrontendToMgmt:
+			mgmt.handleFrontendMessage(received)
+		case received := <- mgmt.doc.ABTUToFrontend:
+			cm := newCollaborationMessage("ABTU", received)
+			message, err := json.Marshal(cm)
+			if err != nil {
+				log.Println("Error during json marshalling:", err)
+			}
+			mgmt.doc.MgmtToFrontend <- message
+		case received := <- mgmt.doc.PeersToMgmt:
 		//	TODO
-		case message := <- mgmt.doc.MgmtToFrontend:
+		case received := <- mgmt.doc.ABTUToPeers:
 		//	TODO
-		case message := <- mgmt.doc.FrontendToABTU:
-		//	TODO
-		case message := <- mgmt.doc.ABTUToFrontend:
-		//	TODO
-		case message := <- mgmt.doc.PeersToMgmt:
-		//	TODO
-		case message := <- mgmt.doc.MgmtToPeers:
-		//	TODO
-		case message := <- mgmt.doc.PeersToABTU:
-		//	TODO
-		case message := <- mgmt.doc.ABTUToPeers:
-		//	TODO
+
 		case isOpen := <-mgmt.isDocumentOpen:
 			if !isOpen {
 				// Document is closed, go back to waiting for opening
