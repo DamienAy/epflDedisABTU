@@ -12,6 +12,7 @@ func (abtu *ABTUInstance) LocalThread(localOperation Operation) Operation {
 	localOp := DeepCopyOperation(localOperation)
 
 	abtu.sv.Increment(abtu.id)
+	abtu.localTimestampHistory = append(abtu.localTimestampHistory, abtu.sv)
 
 	localOp.AddV(abtu.sv)
 
@@ -19,17 +20,33 @@ func (abtu *ABTUInstance) LocalThread(localOperation Operation) Operation {
 }
 
 // Decodes local undo operation from toUndo, and executes local thread algorithm.
-func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) Operation {
-	// Need to find undo op in H
-	toUndoOp := &abtu.h[toUndo]
+func (abtu *ABTUInstance) LocalThreadUndo(toUndo int32) Operation {
+	toUndoTimestamp := abtu.localTimestampHistory[len(abtu.localTimestampHistory) - int(toUndo)]
 
-	if toUndoOp.Uv()!=nil || len(toUndoOp.Dv())!=0 {
+	// Need to find undo op in H
+	toUndoOp := UnitOperation(abtu.id)
+
+	for i:=len(abtu.h)-1; i>=0 ; i-- {
+		isContainedIn, err := toUndoTimestamp.IsContainedIn(abtu.h[i].V())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if isContainedIn && abtu.h[i].Id()==abtu.id{
+			toUndoOp = abtu.h[i]
+		}
+	}
+
+	if toUndoOp.OpType() == UNIT {
+		log.Fatal("Did not find the operation to undo.")
+	}
+
+	if len(toUndoOp.Uv()) != 0 || len(toUndoOp.Dv())!=0 {
 		// If operation has allready been undone or some other operation is dependent on this one.
 		return UnitOperation(abtu.id)
 	} else {
 		undoOp, err := toUndoOp.GetInverse(abtu.id)
 		if err != nil {
-			log.Println("local1")
 			log.Fatal(err)
 		}
 
@@ -73,7 +90,7 @@ func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
 			}
 		}
 	} else {
-		var i int
+		var i int = -1
 		for j := range abtu.h {
 			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(localOp.Ov(), abtu.h[j].V())
 			if err != nil {
@@ -85,10 +102,14 @@ func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
 			}
 		}
 
+		if i == -1 {
+			log.Fatal("There is no operation to undo.")
+		}
+
 		localOp.AddAllTv(abtu.h[i].V())
 		k = i + 1
 
-		for j:=k; j<=len(abtu.h); j++ {
+		for j:=k; j<len(abtu.h); j++ {
 			abtu.h[j].SetPos(abtu.h[j].Pos()+offset)
 		}
 	}

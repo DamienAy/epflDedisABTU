@@ -5,7 +5,6 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp";
 	"errors"
 	"encoding/json"
-	"fmt"
 )
 
 // Represents an operation as defined in the ABTU paper.
@@ -58,7 +57,7 @@ func PartialOperation(
 	charCopy := make(Char, len(character))
 	copy(charCopy, character)
 
-	return Operation{id: id, opType:DEL, position:position, character:charCopy}
+	return Operation{id: id, opType:opType, position:position, character:charCopy}
 }
 
 // Returns a dummy operation, this is used for returns when errors occur in functions
@@ -377,9 +376,7 @@ func (o *Operation) EncodeToFrontend() ([]byte, error) {
 // Returns an error if the decoding failed.
 func DecodeFromFrontend(bytes []byte, siteId SiteId) (Operation, error) {
 	var frontendOperation FrontendOperation
-
 	err := json.Unmarshal(bytes, &frontendOperation)
-
 	if err != nil {
 		return UnitOperation(0), errors.New("Json decoding failed :" + err.Error())
 	}

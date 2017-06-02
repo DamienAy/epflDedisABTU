@@ -13,6 +13,7 @@ import (
 
 
 func main() {
+	println(INS)
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// --------------------------------------------------------
@@ -47,7 +48,7 @@ func main() {
 	var char Char = make(Char, 1)
 	char[0] = 'a'
 
-	localOperation1 := FrontendOperation{DEL, char, 0}
+	localOperation1 := FrontendOperation{INS, char, 0}
 
 	encoded, err := json.Marshal(localOperation1)
 	check(err)
@@ -59,7 +60,17 @@ func main() {
 	frontendToABTU <- encodedFrontend
 	frontendToABTU <- encodedFrontend
 
-	for i:= 0; i<4; i++ {
+	var toUndoIndex int32 = 1
+	toUndoIndexBytes, err := json.Marshal(toUndoIndex)
+	check(err)
+
+	undoFrontendMessage := encoding.FrontendMessage{encoding.Undo, toUndoIndexBytes}
+	undoFrontendMessageBytes, err := json.Marshal(undoFrontendMessage)
+	check(err)
+
+	frontendToABTU <- undoFrontendMessageBytes
+
+	for i:= 0; i<6; i++ {
 
 		select{
 		case msg := <- ABTUToFrontend:

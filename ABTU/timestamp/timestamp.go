@@ -3,7 +3,6 @@ package Timestamp
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"errors"
-	"fmt"
 )
 
 // Represents a timestamp as described in the ABTU paper.
