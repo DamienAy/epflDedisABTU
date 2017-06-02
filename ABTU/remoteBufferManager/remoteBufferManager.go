@@ -4,11 +4,12 @@ import . "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"log"
 )
 
 type GetCausallyReadyOp struct {
-	currentTime Timestamp
-	Return chan Operation
+	CurrentTime Timestamp
+	Return      chan Operation
 }
 
 type RemoveRearrangeOp struct {
@@ -74,7 +75,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 				}
 			// Return the first causally ready operation if awailable. DeepCopy the timestamp
 			case getCausallyReadyOp := <- rbm.Get:
-				rbm.aBTUSV = DeepCopyTimestamp(getCausallyReadyOp.currentTime)
+				rbm.aBTUSV = DeepCopyTimestamp(getCausallyReadyOp.CurrentTime)
 				causallyReadyOp, index := rbm.getFirstCausallyReadyOperation()
 
 				if index >= 0 {
@@ -118,16 +119,22 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 
 // Returns the first causally ready operation from the receiving buffer rb.
 // If there is no causally ready operation yet, it returns a unit operation.
-// Does not make any changes to currentTime and rb
+// Does not make any changes to CurrentTime and rb
 func (rbm *RemoteBufferManager) getFirstCausallyReadyOperation() (Operation, int){
 	for i:=0; i<len(rbm.rb) ; i++ {
 		for _, operationTimestamp := range rbm.rb[i].V() {
-			if operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.siteId) {
+			isCausallyReady, err := operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.siteId)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if  isCausallyReady{
 				return DeepCopyOperation(rbm.rb[i]), i
 			}
 		}
 	}
-	return PartialOperation(rbm.siteId, UNIT, 0, 0), -1
+	return UnitOperation(0), -1
 }
 
 

@@ -4,9 +4,6 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
-	"errors"
-	enc "github.com/DamienAy/epflDedisABTU/ABTU/encoding"
-	"encoding/json"
 	"log"
 )
 
@@ -28,10 +25,11 @@ func (abtu *ABTUInstance) LocalThreadUndo(toUndo uint64) Operation {
 
 	if toUndoOp.Uv()!=nil || len(toUndoOp.Dv())!=0 {
 		// If operation has allready been undone or some other operation is dependent on this one.
-		return PartialOperation(abtu.id, UNIT, 0, 0)
+		return UnitOperation(abtu.id)
 	} else {
 		undoOp, err := toUndoOp.GetInverse(abtu.id)
 		if err != nil {
+			log.Println("local1")
 			log.Fatal(err)
 		}
 
@@ -60,7 +58,7 @@ func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
 		offset = -1
 	}
 
-	if localOp.Ov() == nil { // o is a normal operation
+	if len(localOp.Ov()) == 0 { // o is a normal operation
 		for i:= len(abtu.h)-1 ; i>=0; i-- {
 			if abtu.h[i].IsGreaterH(localOp) {
 				k = i
@@ -77,7 +75,11 @@ func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
 	} else {
 		var i int
 		for j := range abtu.h {
-			if IntersectionIsNotEmpty(localOp.Ov(), abtu.h[j].V()) {
+			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(localOp.Ov(), abtu.h[j].V())
+			if err != nil {
+				log.Fatal(err)
+			}
+			if intersectionIsNotEmpty {
 				i = j
 				break
 			}

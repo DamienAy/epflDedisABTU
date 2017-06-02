@@ -3,22 +3,23 @@ package Timestamp
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"errors"
+	"fmt"
 )
 
 // Represents a timestamp as described in the ABTU paper.
 type Timestamp struct {
-	time []uint64
-	size uint64
+	time []int32
+	size int32
 }
 
 // Returns a new Timestamp of size size.
-func NewTimestamp(size uint64) Timestamp {
-	return Timestamp{make([]uint64, size), size}
+func NewTimestamp(size int32) Timestamp {
+	return Timestamp{make([]int32, size), size}
 }
 
 // Returns a deep copy of the timestamp t
 func DeepCopyTimestamp(t Timestamp) Timestamp {
-	time := make([]uint64, t.size)
+	time := make([]int32, t.size)
 	copy(time, t.time)
 	return Timestamp{time, t.size}
 }
@@ -35,14 +36,14 @@ func DeepCopyTimestamps(timestamps []Timestamp) []Timestamp {
 }
 
 // Returns a copy of the time of the Timestamp
-func (t *Timestamp) Time() []uint64 {
-	time := make([]uint64, t.size)
+func (t *Timestamp) Time() []int32 {
+	time := make([]int32, t.size)
 	copy(time, t.time)
 	return time
 }
 
 // Returns the size of the Timestamp
-func (t *Timestamp) Size() uint64 {
+func (t *Timestamp) Size() int32 {
 	return t.size
 }
 
@@ -53,7 +54,7 @@ func (t *Timestamp) Size() uint64 {
 func (t *Timestamp) Increment(siteId SiteId) error {
 	//type conversion possible, siteId is a uint64
 //-------- This implementation can change in the future, SiteID might become a string
-	if uint64(siteId) >= t.size {
+	if int32(siteId) >= t.size {
 		return errors.New("Cannot increment for siteId bigger than the size of the Timestamp.")
 	} else {
 		t.time[siteId]++
@@ -108,8 +109,8 @@ func (t1 *Timestamp) IsCausallyReady(currentSV Timestamp, siteId SiteId) (bool, 
 
 		isCausallyReady := t[siteId] == sv[siteId]
 
-		for k:=uint64(0); k<t1.size; k++ {
-			if k != uint64(siteId) {
+		for k:=int32(0); k<t1.size; k++ {
+			if k != int32(siteId) {
 				isCausallyReady = isCausallyReady && t[k] <= sv[k]
 			}
 		}
@@ -153,8 +154,8 @@ func IntersectionIsNotEmpty(tSlice1 []Timestamp, tSlice2 []Timestamp) (bool, err
 // Same as Timestamp but with public fields.
 // Used for encoding into Json objects.
 type PublicTimestamp struct {
-	Time []uint64
-	Size uint64
+	Time []int32
+	Size int32
 }
 
 // Returns the PublicTimestamp corresponding to the Timestamp t.

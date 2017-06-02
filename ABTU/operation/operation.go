@@ -5,6 +5,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp";
 	"errors"
 	"encoding/json"
+	"fmt"
 )
 
 // Represents an operation as defined in the ABTU paper.
@@ -32,11 +33,14 @@ func NewOperation(
 	tv []Timestamp,
 	ov []Timestamp,
 	uv []Timestamp) Operation {
+	charCopy := make(Char, len(character))
+	copy(charCopy, character)
+
 	return Operation{
 		id,
 		opType,
 		position,
-		character,
+		charCopy,
 		DeepCopyTimestamps(v),
 		DeepCopyTimestamps(dv),
 		DeepCopyTimestamps(tv),
@@ -51,22 +55,33 @@ func PartialOperation(
 	opType OpType,
 	position Position,
 	character Char) Operation {
-	return Operation{id: id, opType:DEL, position:position, character:character}
+	charCopy := make(Char, len(character))
+	copy(charCopy, character)
+
+	return Operation{id: id, opType:DEL, position:position, character:charCopy}
+}
+
+// Returns a dummy operation, this is used for returns when errors occur in functions
+func UnitOperation(siteId SiteId) Operation {
+	return Operation{id:siteId, opType:UNIT}
 }
 
 // Returns a deep copy of the operation o
 // Timestamps and slices of timestamps are also deep copied.
 func DeepCopyOperation(o Operation) Operation {
+	charCopy := make(Char, len(o.character))
+	copy(charCopy, o.character)
+
 	return Operation{
 		o.id,
 		o.opType,
 		o.position,
-		o.character,
+		charCopy,
 		DeepCopyTimestamps(o.v),
 		DeepCopyTimestamps(o.dv),
 		DeepCopyTimestamps(o.tv),
 		DeepCopyTimestamps(o.ov),
-		DeepCopyTimestamp(o.uv)}
+		DeepCopyTimestamps(o.uv)}
 }
 
 // Returns a deep copy of the slice of Operation operations.
@@ -108,7 +123,9 @@ func (o *Operation) SetPos(p Position) {
 
 // Returns the character of the operation o.
 func (o *Operation) Char() Char {
-	return o.character
+	charCopy := make(Char, len(o.character))
+	copy(charCopy, o.character)
+	return charCopy
 }
 
 
@@ -269,16 +286,14 @@ func (o1 *Operation) IsGreaterH(o2 Operation) bool {
 // Only sets id, opType, position, and character.
 func (o *Operation) GetInverse(siteId SiteId) (Operation, error) {
 	if o.opType == INS {
-		inverse := Operation{id: siteId, opType:DEL, position:o.position, character:o.character}
+		inverse := PartialOperation(siteId, DEL, o.position, o.character)
 		return inverse, nil
-
 	} else if o.opType == DEL{
-		inverse := Operation{id: siteId, opType:INS, position:o.position, character:o.character}
+		inverse := PartialOperation(siteId, INS, o.position, o.character)
 		return inverse, nil
 	} else {
 		return *o, errors.New("Computing the inverse of a unit operation.")
 	}
-
 }
 
 // Same as Operation, all fields are public
@@ -341,13 +356,16 @@ func FrontendOperationToOperation(frontendOperation FrontendOperation, siteId Si
 
 // Returns the FrontendOperation corresponding to the Operation.
 func OperationToFrontendOperation(operation Operation) FrontendOperation {
+	charCopy := make(Char, len(operation.character))
+	copy(charCopy, operation.character)
 	return FrontendOperation{operation.opType, operation.character, operation.position}
 }
 
 // Returns the encoding in json format (frontend) corresponding to the operation o.
 // Returns an error if the encoding failed.
 func (o *Operation) EncodeToFrontend() ([]byte, error) {
-	bytes, err := json.Marshal(&OperationToFrontendOperation(*o))
+	frontendOp := OperationToFrontendOperation(*o)
+	bytes, err := json.Marshal(frontendOp)
 	if err != nil {
 		return nil, errors.New("Json encoding failed :" + err.Error())
 	}
@@ -363,7 +381,7 @@ func DecodeFromFrontend(bytes []byte, siteId SiteId) (Operation, error) {
 	err := json.Unmarshal(bytes, &frontendOperation)
 
 	if err != nil {
-	return nil, errors.New("Json decoding failed :" + err.Error())
+		return UnitOperation(0), errors.New("Json decoding failed :" + err.Error())
 	}
 
 	return FrontendOperationToOperation(frontendOperation, siteId), nil
@@ -388,7 +406,7 @@ func DecodeFromPeers(bytes []byte) (Operation, error) {
 	err := json.Unmarshal(bytes, &publicOperation)
 
 	if err != nil {
-		return nil, errors.New("Json decoding failed :" + err.Error())
+		return UnitOperation(0), errors.New("Json decoding failed :" + err.Error())
 	}
 
 	return publicOperationToOperation(publicOperation), nil

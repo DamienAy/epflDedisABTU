@@ -1,10 +1,5 @@
 package encoding
 
-import (
-	"encoding/json"
-	"errors"
-)
-
 const (
 	LocalOp       = "localOperation"
 	Undo          = "undo"

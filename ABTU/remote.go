@@ -4,6 +4,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"log"
 )
 
 // Executes remotethread algorithm with remoteOperation and returns the operation to execute locally.
@@ -16,7 +17,13 @@ func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []
 	if remoteOp.Ov() != nil { // remoteOp is undo.
 		var i int
 		for k:=0; k<len(H); k++ {
-			if IntersectionIsNotEmpty(H[k].V(), remoteOp.Ov()) {
+			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].V(), remoteOp.Ov())
+			if err != nil {
+				log.Println("remote1")
+				log.Fatal(err)
+			}
+
+			if intersectionIsNotEmpty {
 				i = k
 				break
 			}
@@ -25,7 +32,12 @@ func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []
 		if H[i].Uv()!=nil { // H[i] has already been undone => merge two operations
 			var j int
 			for k:=0; k<len(H); k++ {
-				if IntersectionIsNotEmpty(H[k].V(), remoteOp.Uv()) {
+				intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].V(), remoteOp.Uv())
+				if err != nil {
+					log.Println("remote2")
+					log.Fatal(err)
+				}
+				if intersectionIsNotEmpty {
 					i = k
 					break
 				}
@@ -34,7 +46,7 @@ func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []
 			H[j].AddAllV(remoteOp.V())
 			SV.Increment(remoteOp.Id())
 
-			return PartialOperation(abtu.id, UNIT, 0, 0), H, SV
+			return UnitOperation(abtu.id), H, SV
 
 		} else {
 			H[i].AddAllUv(remoteOp.Uv())
@@ -60,7 +72,13 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 
 	if toIntegrateRemoteOp.Tv()==nil {
 		for i:=0; i<len(H); i++ {
-			if H[i].IsConcurrentWith(toIntegrateRemoteOp) {
+			isConcurrentWith, err := H[i].IsConcurrentWith(toIntegrateRemoteOp)
+			if err != nil {
+				log.Println("remote1")
+				log.Fatal(err)
+			}
+
+			if isConcurrentWith {
 				var offset Position
 				if toIntegrateRemoteOp.OpType() == INS {
 					offset = 1
@@ -87,7 +105,12 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 	} else { //toIntegrateRemoteOp.tv is not empty, also covers undo case
 		var i int
 		for j:=0; j<len(H); j++ {
-			if IntersectionIsNotEmpty(H[k].V(), toIntegrateRemoteOp.Tv()) {
+			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].V(), toIntegrateRemoteOp.Tv())
+			if err != nil {
+				log.Println("remote3")
+				log.Fatal(err)
+			}
+			if intersectionIsNotEmpty {
 				i = j
 				break
 			}
@@ -96,8 +119,13 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 		toIntegrateRemoteOp.SetPos(H[i].Pos())
 		k = i + 1
 
-		//for ;  ; {//sort it out!!!
-		for ; IntersectionIsNotEmpty(H[k].Tv(), H[i].V()); {
+		intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
+		if err != nil {
+			log.Println("remote4")
+			log.Fatal(err)
+		}
+
+		for ; intersectionIsNotEmpty; {
 			if H[k].IsSmallerC(toIntegrateRemoteOp){
 				var offset Position
 				if H[k].OpType() == INS {
@@ -117,6 +145,12 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 			}
 
 			k++
+
+			intersectionIsNotEmpty, err = IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
+			if err != nil {
+				log.Println("remote5")
+				log.Fatal(err)
+			}
 		}
 	}
 
@@ -146,4 +180,6 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 
 		return toIntegrateRemoteOp, newH
 	}
+
+	return toIntegrateRemoteOp, H
 }

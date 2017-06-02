@@ -1,9 +1,9 @@
 package singleTypes
 
-type SiteId uint64
+type SiteId int32
 
 type OpType int
 const(INS OpType = iota; DEL; UNIT)
 
-type Position uint64
-type Char byte
+type Position int32
+type Char []byte
