@@ -7,6 +7,8 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	"github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	"github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"github.com/DamienAy/epflDedisABTU/ABTU/encoding"
+	"encoding/json"
 )
 
 
@@ -64,7 +66,7 @@ func TestABTU2Instances(t *testing.T) {
 	frontendToABTU1, ABTUToFrontend1, PeersToABTU1, ABTUToPeers1 := abtu1.Run()
 
 	abtu2 := setupABTUInstance(2)
-	_, ABTUToFrontend2, PeersToABTU2, ABTUToPeers2 := abtu2.Run()
+	frontendToABTU2, ABTUToFrontend2, PeersToABTU2, ABTUToPeers2 := abtu2.Run()
 
 
 	feedABTU(frontendToABTU1)
@@ -82,6 +84,13 @@ func TestABTU2Instances(t *testing.T) {
 			case msg := <-ABTUToFrontend2:
 				log.Println("2 - Message to frontend:")
 				log.Println(string(msg[:]))
+				bytes, err := json.Marshal(encoding.FrontendMessage{"ackRemoteOperation", []byte{}})
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				frontendToABTU2 <- bytes
+
 			case msg := <- ABTUToPeers2:
 				log.Println("2 - Message to peers: ")
 				log.Println(string(msg[:]))

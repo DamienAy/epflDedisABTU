@@ -102,7 +102,7 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 	} else { //toIntegrateRemoteOp.tv is not empty, also covers undo case
 		var i int
 		for j:=0; j<len(H); j++ {
-			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].V(), toIntegrateRemoteOp.Tv())
+			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[j].V(), toIntegrateRemoteOp.Tv())
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -115,35 +115,41 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 		toIntegrateRemoteOp.SetPos(H[i].Pos())
 		k = i + 1
 
-		intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for ; intersectionIsNotEmpty; {
-			if H[k].IsSmallerC(toIntegrateRemoteOp){
-				var offset Position
-				if H[k].OpType() == INS {
-					offset = 1
-				} else {
-					offset = -1
-				}
-
-				toIntegrateRemoteOp.SetPos(toIntegrateRemoteOp.Pos()+offset)
-
-			} else if H[k].IsGreaterC(toIntegrateRemoteOp) {
-				break
-			} else {
-				toIntegrateRemoteOp.SetToUnit()
-				H[k].AddAllV(toIntegrateRemoteOp.V())
-				break
-			}
-
-			k++
-
-			intersectionIsNotEmpty, err = IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
+		if k<len(H) {
+			intersectionIsNotEmpty, err := IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
 			if err != nil {
 				log.Fatal(err)
+			}
+
+			for ; intersectionIsNotEmpty; {
+				if H[k].IsSmallerC(toIntegrateRemoteOp){
+					var offset Position
+					if H[k].OpType() == INS {
+						offset = 1
+					} else {
+						offset = -1
+					}
+
+					toIntegrateRemoteOp.SetPos(toIntegrateRemoteOp.Pos()+offset)
+
+				} else if H[k].IsGreaterC(toIntegrateRemoteOp) {
+					break
+				} else {
+					toIntegrateRemoteOp.SetToUnit()
+					H[k].AddAllV(toIntegrateRemoteOp.V())
+					break
+				}
+
+				k++
+
+				if k<len(H) {
+					intersectionIsNotEmpty, err = IntersectionIsNotEmpty(H[k].Tv(), H[i].V())
+					if err != nil {
+						log.Fatal(err)
+					}
+				} else {
+					intersectionIsNotEmpty = false
+				}
 			}
 		}
 	}

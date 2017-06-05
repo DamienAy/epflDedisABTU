@@ -4,11 +4,13 @@ import (
 	"log"
 	"testing"
 	"time"
+	"encoding/json"
+	"github.com/DamienAy/epflDedisABTU/ABTU/encoding"
 )
 
 
 
-func TestABTU2(t *testing.T) {
+func TestABTUWithCommunication2(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// --------------------------------------------------------
@@ -17,12 +19,11 @@ func TestABTU2(t *testing.T) {
 
 	abtu := setupABTUInstance(2)
 	// Run the ABTUInstance
-	_, ABTUToFrontend, PeersToABTU, ABTUToPeers := abtu.Run()
+	frontendToABTU, ABTUToFrontend, PeersToABTU, ABTUToPeers := abtu.Run()
 
 	comService := setupCommunicationService(2)
 	mgmtToPeers, peersToMgmt := comService.Run()
 
-	done := make(chan bool)
 
 	go func() {
 		for {
@@ -30,7 +31,12 @@ func TestABTU2(t *testing.T) {
 			case msg := <-ABTUToFrontend:
 				log.Println("Message to frontend:")
 				log.Println(string(msg[:]))
-				done <- true
+				bytes, err := json.Marshal(encoding.FrontendMessage{"ackRemoteOperation", []byte{}})
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				frontendToABTU <- bytes
 			case msg := <-ABTUToPeers:
 				log.Println("Message to peers: ")
 				log.Println(string(msg[:]))
@@ -45,7 +51,6 @@ func TestABTU2(t *testing.T) {
 
 	time.Sleep(15 * time.Second)
 
-	<-done
 
 
 }
