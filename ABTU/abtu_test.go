@@ -6,7 +6,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	"encoding/json"
 	"github.com/DamienAy/epflDedisABTU/ABTU/encoding"
-	"github.com/DamienAy/epflDedisABTU/Management/peerCommunication"
+	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
 	"log"
 )
 

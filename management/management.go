@@ -1,11 +1,11 @@
-package main
+package management
 
 import (
 	"github.com/DamienAy/epflDedisABTU/ABTU"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
-	"github.com/DamienAy/epflDedisABTU/Management/document"
+	"github.com/DamienAy/epflDedisABTU/management/document"
 	"fmt"
 	"log"
 	"github.com/gorilla/websocket"
@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"path/filepath"
+	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
 )
 
 const (
@@ -24,24 +25,23 @@ const (
 
 // A structure to communicate with frontend and store documents
 type Management struct {
-	// Channels to communicate between frontend and management
-	controlFromFrontend chan []byte
-	controlToFrontend chan []byte
-
 	// A document being opened at the moment
 	doc *document.Document
 
 	// Channel to check whether an ABTU instance must be running
 	isDocumentOpen chan bool
+
+	// Communication service to send and receive operations fro network
+	network *peerCommunication.CommunicationService
 }
 
 
 // Returns a pointer to a new Management structure
-func newManagement() *Management {
+func NewManagement() *Management {
 	return &Management{
-		controlFromFrontend: make(chan []byte, 20),
-		controlToFrontend: make(chan []byte, 20),
 		doc: nil,
+		network: nil,
+		isDocumentOpen: make(chan bool),
 	}
 }
 
@@ -153,9 +153,9 @@ func serveHome(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 }
 
 
-func main() {
+func (mgmt *Management) Run() {
 	/* Create an instance of Management and establish control communication with Frontend*/
-	mgmt := newManagement()
+	//mgmt := NewManagement()
 
 	// Give handlers for http and websocket connection and start serving
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

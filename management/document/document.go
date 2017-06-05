@@ -30,8 +30,3 @@ func NewDocument() *Document {
 		ABTUToPeers: make(chan []byte, 20),
 	}
 }
-
-//type DocumentMessage struct {
-//	Type    string
-//	Content json.RawMessage
-//}
