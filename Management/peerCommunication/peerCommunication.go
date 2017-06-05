@@ -13,6 +13,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"fmt"
 	"github.com/libp2p/go-libp2p-protocol"
+	"io/ioutil"
 )
 
 const(
@@ -21,8 +22,8 @@ const(
 
 type CommunicationService struct {
 	host host.Host
-	PeersToMgmt <-chan []byte
-	MgmtToPeers chan<- []byte
+	peersToMgmt chan []byte
+	mgmtToPeers chan []byte
 }
 
 type ABTUPeer struct {
@@ -43,10 +44,10 @@ Sets up a CommunicationService for site myId.
 All received operations will be transmitted to the receivingFunction function.
 Addresses in the peerCommunication.txt file should in the following format: /ip4/<ipv4Address>/tcp/<tcpPort>/ipfs/<ipfsId>
  */
-func Init(myId SiteId, ABTUPeers map[SiteId]ABTUPeer) (*CommunicationService, error) {
+func Init(myId SiteId, ABTUPeers map[SiteId]ABTUPeer) *CommunicationService {
 	comService := &CommunicationService{}
-	comService.PeersToMgmt = make(<-chan []byte, 20)
-	comService.MgmtToPeers = make(chan<- []byte, 20)
+	comService.peersToMgmt = make(chan []byte, 20)
+	comService.mgmtToPeers = make(chan []byte, 20)
 
 	// Setup the host
 	myIpTcpAddress := fmt.Sprintf("/ip4/%s/tcp/%s", ABTUPeers[myId].IpAddr, ABTUPeers[myId].TCPPort)
@@ -75,26 +76,28 @@ func Init(myId SiteId, ABTUPeers map[SiteId]ABTUPeer) (*CommunicationService, er
 		}
 	}
 
-	return comService, nil
+	return comService
 }
 
-func (comService *CommunicationService) Run() {
+func (comService *CommunicationService) Run() (chan<- []byte, <-chan []byte) {
 	// Setup stream handler for COMMUNICATION_PROTOCOL
 	comService.host.SetStreamHandler(COMMUNICATION_PROTOCOL , func(s net.Stream) {
 		defer s.Close()
 
-		var incommingMsg []byte
-		s.Read(incommingMsg)
+		incomingMsg, err := ioutil.ReadAll(s)
+		if err!=nil {
+			log.Fatal(err)
+		}
 
-		comService.PeersToMgmt <- incommingMsg
+		comService.peersToMgmt <- incomingMsg
 	})
 
 	// Transfer incoming messages to the PeersToMgmt channel.
-	for {
-		select {
-		case outGoingMsg := <- comService.PeersToMgmt:
+	go func () {
+		for {
+			outGoingMsg := <- comService.mgmtToPeers
 			for _, peer := range comService.host.Peerstore().Peers() {
-				outGoingStream, err := comService.host.NewStream(context.Background(), peer, string(COMMUNICATION_PROTOCOL))
+				outGoingStream, err := comService.host.NewStream(context.Background(), peer, COMMUNICATION_PROTOCOL)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -102,7 +105,9 @@ func (comService *CommunicationService) Run() {
 				outGoingStream.Write(outGoingMsg)
 			}
 		}
-	}
+	}()
+
+	return comService.mgmtToPeers, comService.peersToMgmt
 }
 
 func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {

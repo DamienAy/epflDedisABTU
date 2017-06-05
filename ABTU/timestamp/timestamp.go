@@ -7,18 +7,18 @@ import (
 
 // Represents a timestamp as described in the ABTU paper.
 type Timestamp struct {
-	time []int32
-	size int32
+	time []int
+	size int
 }
 
 // Returns a new Timestamp of size size.
-func NewTimestamp(size int32) Timestamp {
-	return Timestamp{make([]int32, size), size}
+func NewTimestamp(size int) Timestamp {
+	return Timestamp{make([]int, size), size}
 }
 
 // Returns a deep copy of the timestamp t
 func DeepCopyTimestamp(t Timestamp) Timestamp {
-	time := make([]int32, t.size)
+	time := make([]int, t.size)
 	copy(time, t.time)
 	return Timestamp{time, t.size}
 }
@@ -35,14 +35,14 @@ func DeepCopyTimestamps(timestamps []Timestamp) []Timestamp {
 }
 
 // Returns a copy of the time of the Timestamp
-func (t *Timestamp) Time() []int32 {
-	time := make([]int32, t.size)
+func (t *Timestamp) Time() []int {
+	time := make([]int, t.size)
 	copy(time, t.time)
 	return time
 }
 
 // Returns the size of the Timestamp
-func (t *Timestamp) Size() int32 {
+func (t *Timestamp) Size() int {
 	return t.size
 }
 
@@ -53,7 +53,7 @@ func (t *Timestamp) Size() int32 {
 func (t *Timestamp) Increment(siteId SiteId) error {
 	//type conversion possible, siteId is a uint64
 //-------- This implementation can change in the future, SiteID might become a string
-	if int32(siteId) >= t.size {
+	if int(siteId) >= t.size {
 		return errors.New("Cannot increment for siteId bigger than the size of the Timestamp.")
 	} else {
 		t.time[siteId]++
@@ -99,18 +99,18 @@ func (t1 *Timestamp) Equals(t2 Timestamp) (bool, error) {
 // Returns and error if t1 ans currentSV have different sizes.
 // Does not modify t1 nor currentSV.
 
-func (t1 *Timestamp) IsCausallyReady(currentSV Timestamp, siteId SiteId) (bool, error) {
+func (t1 *Timestamp) IsCausallyReady(currentSV Timestamp, originSiteId SiteId) (bool, error) {
 	if t1.size!=currentSV.size {
 		return false, errors.New("Two Timestamps of different length cannot be compared")
 	} else {
 		t := t1.time
 		sv := currentSV.time
 
-		isCausallyReady := t[siteId] == sv[siteId]
+		isCausallyReady := (t[originSiteId] == sv[originSiteId] + 1)
 
-		for k:=int32(0); k<t1.size; k++ {
-			if k != int32(siteId) {
-				isCausallyReady = isCausallyReady && t[k] <= sv[k]
+		for k:=0; k<t1.size; k++ {
+			if k != int(originSiteId) {
+				isCausallyReady = isCausallyReady && (t[k] <= sv[k])
 			}
 		}
 
@@ -153,8 +153,8 @@ func IntersectionIsNotEmpty(tSlice1 []Timestamp, tSlice2 []Timestamp) (bool, err
 // Same as Timestamp but with public fields.
 // Used for encoding into Json objects.
 type PublicTimestamp struct {
-	Time []int32
-	Size int32
+	Time []int
+	Size int
 }
 
 // Returns the PublicTimestamp corresponding to the Timestamp t.

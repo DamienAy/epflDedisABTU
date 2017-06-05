@@ -156,7 +156,7 @@ func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation)
 			offset = -1
 		}
 
-		for j:=k; j<=len(H); j++ {
+		for j:=k; j<len(H); j++ {
 			H[j].SetPos(H[j].Pos()+offset)
 		}
 

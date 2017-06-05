@@ -3,7 +3,6 @@ package remoteBufferManager
 import . "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
-	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"log"
 )
 
@@ -27,7 +26,6 @@ type RemoteBufferManager struct {
 	RemoveRearrange chan RemoveRearrangeOp
 
 	rb []Operation
-	siteId SiteId
 
 	aBTUIsWaitingCausallyReadyOp bool
 	aBTUSV Timestamp
@@ -35,13 +33,12 @@ type RemoteBufferManager struct {
 	currentCausallyReadyOperationIndex int
 }
 
-func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
+func (rbm *RemoteBufferManager) Start(rb []Operation){
 	rbm.Add = make(chan AddOp)
 	rbm.Get = make(chan GetCausallyReadyOp)
 	rbm.RemoveRearrange = make(chan RemoveRearrangeOp)
 
 	rbm.rb = DeepCopyOperations(rb)
-	rbm.siteId = siteId
 
 	rbm.aBTUIsWaitingCausallyReadyOp = false
 	rbm.currentCausallyReadyOperationIndex = -1;
@@ -65,10 +62,7 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 						causallyReadyOp, index := rbm.getFirstCausallyReadyOperation()
 						if index >= 0 {
 							rbm.currentCausallyReadyOperationIndex = index
-							select {
-							case rbm.causallyReadyOpRetChan <- causallyReadyOp:
-							default:
-							}
+							rbm.causallyReadyOpRetChan <- causallyReadyOp
 							rbm.aBTUIsWaitingCausallyReadyOp = false
 						}
 					}
@@ -76,14 +70,13 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 			// Return the first causally ready operation if awailable. DeepCopy the timestamp
 			case getCausallyReadyOp := <- rbm.Get:
 				rbm.aBTUSV = DeepCopyTimestamp(getCausallyReadyOp.CurrentTime)
+				rbm.causallyReadyOpRetChan = getCausallyReadyOp.Return
 				causallyReadyOp, index := rbm.getFirstCausallyReadyOperation()
 
 				if index >= 0 {
 					rbm.currentCausallyReadyOperationIndex = index
-					select {
-					case rbm.causallyReadyOpRetChan <- causallyReadyOp:
-					default:
-					}
+					rbm.causallyReadyOpRetChan <- causallyReadyOp
+
 					rbm.aBTUIsWaitingCausallyReadyOp = false
 				} else {
 					rbm.aBTUIsWaitingCausallyReadyOp = true
@@ -123,13 +116,13 @@ func (rbm *RemoteBufferManager) Start(rb []Operation, siteId SiteId){
 func (rbm *RemoteBufferManager) getFirstCausallyReadyOperation() (Operation, int){
 	for i:=0; i<len(rbm.rb) ; i++ {
 		for _, operationTimestamp := range rbm.rb[i].V() {
-			isCausallyReady, err := operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.siteId)
+			isCausallyReady, err := operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.rb[i].Id())
 
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			if  isCausallyReady{
+			if  isCausallyReady {
 				return DeepCopyOperation(rbm.rb[i]), i
 			}
 		}

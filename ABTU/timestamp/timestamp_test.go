@@ -2,7 +2,6 @@ package Timestamp
 
 import "testing"
 import (
-	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	"log"
 )
 

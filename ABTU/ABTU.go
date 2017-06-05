@@ -36,7 +36,7 @@ func Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) *ABTUInstance 
 	abtu.h = DeepCopyOperations(h)
 	abtu.localTimestampHistory = make([]Timestamp, 0)
 
-	abtu.rbm.Start(rb, abtu.id)
+	abtu.rbm.Start(rb)
 
 	abtu.lIn = make(chan []byte, 20)
 	abtu.lOut = make(chan []byte, 20)
@@ -86,7 +86,7 @@ func (abtu *ABTUInstance) listenToRemote() {
 }
 
 func (abtu *ABTUInstance) launchController() {
-	for ;; {
+	for {
 		select {
 		case bytes :=  <- abtu.lIn:
 			abtu.handleFrontendMessage(bytes)

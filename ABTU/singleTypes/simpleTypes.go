@@ -1,11 +1,11 @@
 package singleTypes
 
-type SiteId int32
+type SiteId int
 
 type OpType int
 const(INS OpType = iota;
 	DEL;
 	UNIT)
 
-type Position int32
+type Position int
 type Char []byte
