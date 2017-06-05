@@ -1,25 +1,35 @@
 package peerCommunication
 
 import (
-	"os"
 	"log"
-	"bufio"
-	"errors"
-	"strconv"
 	host "github.com/libp2p/go-libp2p-host"
 	"context"
-	"strings"
 	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
-	"encoding/gob"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"fmt"
+	"github.com/libp2p/go-libp2p-protocol"
+)
+
+const(
+	COMMUNICATION_PROTOCOL protocol.ID = "epflDedisABTU/Broadcast/0.0.1"
 )
 
 type CommunicationService struct {
 	host host.Host
+	PeersToMgmt <-chan []byte
+	MgmtToPeers chan<- []byte
+}
+
+type ABTUPeer struct {
+	Id SiteId
+	PeerId string
+	IpAddr string
+	TCPPort string
 }
 
 func check(error error) {
@@ -33,55 +43,66 @@ Sets up a CommunicationService for site myId.
 All received operations will be transmitted to the receivingFunction function.
 Addresses in the peerCommunication.txt file should in the following format: /ip4/<ipv4Address>/tcp/<tcpPort>/ipfs/<ipfsId>
  */
-func SetupCommunicationService(myId int, receivingFunction func(Operation)) (*CommunicationService, error) {
-	f, err := os.Open("peerCommunication.txt")
+func Init(myId SiteId, ABTUPeers map[SiteId]ABTUPeer) (*CommunicationService, error) {
+	comService := &CommunicationService{}
+	comService.PeersToMgmt = make(<-chan []byte, 20)
+	comService.MgmtToPeers = make(chan<- []byte, 20)
 
-	if err!= nil {
+	// Setup the host
+	myIpTcpAddress := fmt.Sprintf("/ip4/%s/tcp/%s", ABTUPeers[myId].IpAddr, ABTUPeers[myId].TCPPort)
+
+	peerId, err := peer.IDB58Decode(ABTUPeers[myId].PeerId)
+	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
 
-	var addresses [N]string
-	scanner := bufio.NewScanner(f)
-
-	for i:=0; i<N; i++ {
-		if scanner.Scan(){
-			addresses[i] = scanner.Text()
-		} else {
-			return nil, errors.New("Communication file does contain less than " + strconv.FormatInt(int64(N), 10) + " addresses.")
-		}
+	host, err := makeBasicHost(myIpTcpAddress, peerId)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	address := strings.Split(addresses[myId], "/ipfs/")
-	myIpTcpAddress := address[0]
-	peerId, err := peer.IDB58Decode(address[1]); check(err)
+	comService.host = host
 
-	host, err := makeBasicHost(myIpTcpAddress, peerId); check(err)
-
-	for i:=0; i<N; i++ {
-		if i==myId {
-			//Skip
+	// Add all other peers into the peerstore.
+	for sId, ABTUPeer := range ABTUPeers {
+		if sId == myId {
+			// skip
 		} else {
-			address := strings.Split(addresses[i], "/ipfs/")
-			multiAddress, err := ma.NewMultiaddr(address[0]); check(err)
-			peerId, err := peer.IDB58Decode(address[1]); check(err)
+			multiAddress, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s", ABTUPeer.IpAddr, ABTUPeer.TCPPort)); check(err)
+			peerId, err := peer.IDB58Decode(ABTUPeer.PeerId); check(err)
 
 			host.Peerstore().AddAddr(peerId, multiAddress, pstore.PermanentAddrTTL)
 		}
 	}
 
-	host.SetStreamHandler("p2pPublish/epflDedisABTU/Broadcast/0.0.1", func(s net.Stream) {
+	return comService, nil
+}
+
+func (comService *CommunicationService) Run() {
+	// Setup stream handler for COMMUNICATION_PROTOCOL
+	comService.host.SetStreamHandler(COMMUNICATION_PROTOCOL , func(s net.Stream) {
 		defer s.Close()
 
-		var publicOp publicOp
+		var incommingMsg []byte
+		s.Read(incommingMsg)
 
-		decoder := gob.NewDecoder(s)
-		err := decoder.Decode(&publicOp); check(err)
-
-		receivingFunction(publicOpToOperation(publicOp))
+		comService.PeersToMgmt <- incommingMsg
 	})
 
-	return &CommunicationService{host}, nil
+	// Transfer incoming messages to the PeersToMgmt channel.
+	for {
+		select {
+		case outGoingMsg := <- comService.PeersToMgmt:
+			for _, peer := range comService.host.Peerstore().Peers() {
+				outGoingStream, err := comService.host.NewStream(context.Background(), peer, string(COMMUNICATION_PROTOCOL))
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				outGoingStream.Write(outGoingMsg)
+			}
+		}
+	}
 }
 
 func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
@@ -97,14 +118,4 @@ func makeBasicHost(listen string, pid peer.ID) (host.Host, error) {
 	}
 
 	return bhost.New(netw), nil
-}
-
-func (c *CommunicationService) Send(o Operation) {
-	host := c.host
-	publicOp := operationToPublicOp(o)
-	for _, peerId:= range host.Peerstore().Peers() {
-		s, err := host.NewStream(context.Background(), peerId, "p2pPublish/epflDedisABTU/Broadcast/0.0.1"); check(err)
-		encoder := gob.NewEncoder(s)
-		err = encoder.Encode(publicOp); check(err)
-	}
 }

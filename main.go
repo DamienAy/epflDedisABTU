@@ -77,6 +77,7 @@ func main() {
 			var frontendMsg encoding.FrontendMessage
 			err := json.Unmarshal(msg, &frontendMsg)
 			check(err)
+			log.Printf("%b", msg)
 			log.Println(frontendMsg)
 			log.Println("printed Frontend msg")
 		case msg := <- ABTUToPeers:
