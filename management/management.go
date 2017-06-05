@@ -6,7 +6,6 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 	"github.com/DamienAy/epflDedisABTU/management/document"
-	"fmt"
 	"log"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"strconv"
 	"path/filepath"
 	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
+	"fmt"
 )
 
 const (
@@ -103,6 +103,7 @@ func (mgmt *Management) handlePeersMessage(received []byte) {
 
 
 func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Connected through a websocket")
 	ws, err := websocket.Upgrade(w, r, w.Header(), maxMessageSize, maxMessageSize)
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
@@ -167,7 +168,6 @@ func serveHome(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 	//log.Println(r.URL.EscapedPath())
 	http.ServeFile(w, r, filepath.Join(frontendPath, r.URL.EscapedPath()))
 
-
 	/* Currently, creates a document when a user first time goes to Home
 	and keeps it open all the time.
 	Future: a new document is created and ABTU instance is run
@@ -192,9 +192,11 @@ func (mgmt *Management) Run() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWS(mgmt, w, r)
 	})
-	if err := http.ListenAndServe(":" + strconv.Itoa(defaultListenPort), nil); err != nil {
-		panic("ListenAndServe: " + err.Error())
-	}
+	go func() {
+		if err := http.ListenAndServe(":" + strconv.Itoa(defaultListenPort), nil); err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
+	}()
 	fmt.Printf("Go to http://localhost:%v in your browser to access frontend\n", defaultListenPort)
 
 	for {
