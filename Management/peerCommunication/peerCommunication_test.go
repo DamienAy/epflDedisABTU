@@ -5,13 +5,7 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 )
 
-func TestPeerCommunication1(t *testing.T) {
 
-	comService := setupCommunicationService(1)
-
-
-
-}
 
 func setupCommunicationService(siteId SiteId) *CommunicationService{
 	peer1 := ABTUPeer{1,"QmVvtzcZgCkMnSFf2dnrBPXrWuNFWNM9J3MpZQCvWPuVZf", "127.0.0.1", "1234" }

@@ -13,7 +13,7 @@ import (
 
 
 
-func TestABTUWithCommunication1(t *testing.T) {
+/*func TestABTUWithCommunication1(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// --------------------------------------------------------
@@ -28,7 +28,6 @@ func TestABTUWithCommunication1(t *testing.T) {
 	mgmtToPeers, peersToMgmt := comService.Run()
 
 	time.Sleep(10 * time.Second)
-
 
 	feedABTU(frontendToABTU)
 
@@ -52,7 +51,7 @@ func TestABTUWithCommunication1(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 
-}
+}*/
 
 
 func TestABTU2Instances(t *testing.T) {
@@ -104,7 +103,7 @@ func TestABTU2Instances(t *testing.T) {
 }
 
 
-func TestABTU(t *testing.T) {
+/*func TestABTU(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// --------------------------------------------------------
@@ -141,4 +140,4 @@ func TestABTU(t *testing.T) {
 
 	time.Sleep(20*time.Second)
 
-}
+}*/
