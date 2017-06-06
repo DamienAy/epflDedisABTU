@@ -14,12 +14,13 @@ import (
 	"path/filepath"
 	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
 	"fmt"
+	"flag"
 )
 
 const (
 	defaultListenPort = 5050
 	maxMessageSize = 1024
-	frontendPath = "/Users/knikitin/projects/peer-to-peer-doc-editing"
+	defaultFrontendPath = "/Users/knikitin/projects/peer-to-peer-doc-editing"
 )
 
 
@@ -30,9 +31,6 @@ type Management struct {
 
 	// Channel to check whether an ABTU instance must be running
 	isDocumentOpen chan bool
-
-	// Communication service to send and receive operations fro network
-	network *peerCommunication.CommunicationService
 }
 
 
@@ -40,7 +38,6 @@ type Management struct {
 func NewManagement() *Management {
 	return &Management{
 		doc: nil,
-		network: nil,
 		isDocumentOpen: make(chan bool),
 	}
 }
@@ -113,13 +110,17 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	// Writing messages to the connection
 	go func() {
+		test := []byte{'h', 'i'}
+		ws.WriteMessage(2, test)
 		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
 		ws.WriteMessage(2, m2write)
 	}()
 
 	for {
+		log.Println("start listening on ws")
 		_, m2read, err := ws.ReadMessage()
+		log.Println(m2read)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
@@ -163,10 +164,10 @@ func initDocument() *document.Document {
 	return doc
 }
 
-func serveHome(mgmt *Management, w http.ResponseWriter, r *http.Request) {
+func serveHome(mgmt *Management, front *string, w http.ResponseWriter, r *http.Request) {
 	// Serve requested files and dependencies
 	//log.Println(r.URL.EscapedPath())
-	http.ServeFile(w, r, filepath.Join(frontendPath, r.URL.EscapedPath()))
+	http.ServeFile(w, r, filepath.Join(*front, r.URL.EscapedPath()))
 
 	/* Currently, creates a document when a user first time goes to Home
 	and keeps it open all the time.
@@ -182,12 +183,12 @@ func serveHome(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 
 func (mgmt *Management) Run() {
-	/* Create an instance of Management and establish control communication with Frontend*/
-	//mgmt := NewManagement()
+	frontendPathPtr := flag.String("frontend", defaultFrontendPath, "Path to Frontend")
+	flag.Parse()
 
 	// Give handlers for http and websocket connection and start serving
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		serveHome(mgmt, w, r)
+		serveHome(mgmt, frontendPathPtr, w, r)
 	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWS(mgmt, w, r)
