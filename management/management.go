@@ -15,6 +15,7 @@ import (
 	"github.com/DamienAy/epflDedisABTU/Management/peerCommunication"
 	"fmt"
 	"flag"
+	"time"
 )
 
 const (
@@ -87,6 +88,7 @@ func (mgmt *Management) handlePeersMessage(received []byte) {
 	if err != nil {
 		log.Println("Error while unmarshalling collaborationMessage:", err)
 	}
+	log.Println(cm, "parsed FrontendtoMgmt")
 
 	switch cm.Event {
 	case "ABTU":
@@ -100,7 +102,6 @@ func (mgmt *Management) handlePeersMessage(received []byte) {
 
 
 func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Connected through a websocket")
 	ws, err := websocket.Upgrade(w, r, w.Header(), maxMessageSize, maxMessageSize)
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
@@ -110,17 +111,20 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	// Writing messages to the connection
 	go func() {
-		test := []byte{'h', 'i'}
-		ws.WriteMessage(2, test)
+		// Testing
+		time.Sleep(4)
+		test := newCollaborationMessage("ABTU", []byte(`{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`))
+		out, _ := json.Marshal(test)
+		//fmt.Println(out)
+		ws.WriteMessage(2, out)
 		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
 		ws.WriteMessage(2, m2write)
 	}()
 
 	for {
-		log.Println("start listening on ws")
 		_, m2read, err := ws.ReadMessage()
-		log.Println(m2read)
+		log.Println("Received from Frontend:", m2read)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
@@ -213,11 +217,10 @@ func (mgmt *Management) Run() {
 		select {
 
 		case received := <- mgmt.doc.FrontendToMgmt:
-			log.Println(received)
 			mgmt.handleFrontendMessage(received)
 
 		case received := <- mgmt.doc.ABTUToFrontend:
-			log.Println(received)
+			log.Println(received, "from ABTUtoFrontend")
 			cm := newCollaborationMessage("ABTU", received)
 			message, err := json.Marshal(cm)
 			if err != nil {
@@ -226,11 +229,11 @@ func (mgmt *Management) Run() {
 			mgmt.doc.MgmtToFrontend <- message
 
 		case received := <- mgmt.doc.PeersToMgmt:
-			log.Println(received)
+			log.Println(received, "from PeersToMgmt")
 			mgmt.handlePeersMessage(received)
 
 		case received := <- mgmt.doc.ABTUToPeers:
-			log.Println(received)
+			log.Println(received, "from ABTUToPeers")
 			cm := newCollaborationMessage("ABTU", received)
 			message, err := json.Marshal(cm)
 			if err != nil {
