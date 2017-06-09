@@ -15,6 +15,7 @@ import (
 	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
 	"fmt"
 	"flag"
+	"time"
 )
 
 const (
@@ -110,8 +111,12 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	// Writing messages to the connection
 	go func() {
-		//test := []byte{'h', 'i'}
-		//ws.WriteMessage(2, test)
+		// Testing
+		time.Sleep(4)
+		test := newCollaborationMessage("ABTU", []byte(`{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`))
+		out, _ := json.Marshal(test)
+		//fmt.Println(out)
+		ws.WriteMessage(2, out)
 		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
 		ws.WriteMessage(2, m2write)
