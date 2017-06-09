@@ -124,7 +124,7 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	for {
 		_, m2read, err := ws.ReadMessage()
-		log.Println(m2read, "in websocker listening")
+		log.Println("Received from Frontend:", m2read)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
