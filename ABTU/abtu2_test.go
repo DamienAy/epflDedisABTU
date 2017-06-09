@@ -13,9 +13,6 @@ import (
 func TestABTUWithCommunication2(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	// --------------------------------------------------------
-	// Sample of code for an example of use of and ABTUInstance
-	// --------------------------------------------------------
 
 	abtu := setupABTUInstance(2)
 	// Run the ABTUInstance

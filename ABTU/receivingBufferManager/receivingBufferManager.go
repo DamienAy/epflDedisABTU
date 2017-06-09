@@ -1,4 +1,4 @@
-package remoteBufferManager
+package receivingBufferManager
 
 import . "github.com/DamienAy/epflDedisABTU/ABTU/operation"
 import (
@@ -20,7 +20,7 @@ type AddOp struct {
 	Ack chan bool
 }
 
-type RemoteBufferManager struct {
+type ReceivingBufferManager struct {
 	Add chan AddOp
 	Get chan GetCausallyReadyOp
 	RemoveRearrange chan RemoveRearrangeOp
@@ -33,7 +33,7 @@ type RemoteBufferManager struct {
 	currentCausallyReadyOperationIndex int
 }
 
-func (rbm *RemoteBufferManager) Start(rb []Operation){
+func (rbm *ReceivingBufferManager) Start(rb []Operation){
 	rbm.Add = make(chan AddOp)
 	rbm.Get = make(chan GetCausallyReadyOp)
 	rbm.RemoveRearrange = make(chan RemoveRearrangeOp)
@@ -106,14 +106,12 @@ func (rbm *RemoteBufferManager) Start(rb []Operation){
 			}
 		}
 	}()
-
-
 }
 
 // Returns the first causally ready operation from the receiving buffer rb.
 // If there is no causally ready operation yet, it returns a unit operation.
 // Does not make any changes to CurrentTime and rb
-func (rbm *RemoteBufferManager) getFirstCausallyReadyOperation() (Operation, int){
+func (rbm *ReceivingBufferManager) getFirstCausallyReadyOperation() (Operation, int){
 	for i:=0; i<len(rbm.rb) ; i++ {
 		for _, operationTimestamp := range rbm.rb[i].V() {
 			isCausallyReady, err := operationTimestamp.IsCausallyReady(rbm.aBTUSV, rbm.rb[i].Id())

@@ -17,7 +17,7 @@ import (
 )
 
 const(
-	COMMUNICATION_PROTOCOL protocol.ID = "epflDedisABTU/Broadcast/0.0.1"
+	COMMUNICATION_PROTOCOL protocol.ID = "epflDedisABTU/Dispatch/0.0.1"
 )
 
 type CommunicationService struct {

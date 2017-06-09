@@ -4,21 +4,16 @@ import (
 	"log"
 	"testing"
 	"time"
-	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
-	"github.com/DamienAy/epflDedisABTU/ABTU/operation"
-	"github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	"github.com/DamienAy/epflDedisABTU/ABTU/encoding"
 	"encoding/json"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
+	"github.com/DamienAy/epflDedisABTU/ABTU/operation"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 )
 
-
-
-/*func TestABTUWithCommunication1(t *testing.T) {
+func TestABTUWithCommunication1(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	// --------------------------------------------------------
-	// Sample of code for an example of use of and ABTUInstance
-	// --------------------------------------------------------
 
 	abtu := setupABTUInstance(1)
 	// Run the ABTUInstance
@@ -51,15 +46,12 @@ import (
 
 	time.Sleep(3 * time.Second)
 
-}*/
+}
 
 
 func TestABTU2Instances(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	// --------------------------------------------------------
-	// Sample of code for an example of use of and ABTUInstance
-	// --------------------------------------------------------
 
 	abtu1 := setupABTUInstance(1)
 	frontendToABTU1, ABTUToFrontend1, PeersToABTU1, ABTUToPeers1 := abtu1.Run()
@@ -98,25 +90,22 @@ func TestABTU2Instances(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(10*time.Second)
+	time.Sleep(5*time.Second)
 
 }
 
 
-/*func TestABTU(t *testing.T) {
+func TestOneABTUInstance(t *testing.T) {
 	// to change the flags on the default logger
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	// --------------------------------------------------------
-	// Sample of code for an example of use of and ABTUInstance
-	// --------------------------------------------------------
 
 	abtu1 := setupABTUInstance(1)
-	_, ABTUToFrontend1, PeersToABTU1, ABTUToPeers1 := abtu1.Run()
+	FrontendToABTU1, ABTUToFrontend1, PeersToABTU1, ABTUToPeers1 := abtu1.Run()
 
-	timestamp := NewTimestamp( 3)
+	timestamp := NewTimestamp( 2)
 	timestamp.Increment(0)
 	bytes := []byte("a")
-	op := operation.NewOperation(0, singleTypes.INS, 0, bytes, []Timestamp{timestamp}, []Timestamp{}, []Timestamp{}, []Timestamp{}, []Timestamp{})
+	op := operation.NewOperation(0, INS, 0, bytes, []Timestamp{timestamp}, []Timestamp{}, []Timestamp{}, []Timestamp{}, []Timestamp{})
 
 	bytes, err := op.EncodeToPeers()
 	if err != nil {
@@ -124,6 +113,22 @@ func TestABTU2Instances(t *testing.T) {
 	}
 
 	PeersToABTU1 <- bytes
+
+	var char Char = make(Char, 1)
+	char[0] = 'a'
+
+	localOperation1 := operation.FrontendOperation{INS, char, 0}
+
+	encoded, err := json.Marshal(localOperation1)
+	if err!=nil {
+		log.Fatal(err)
+	}
+
+	frontendMsg := encoding.FrontendMessage{encoding.LocalOp, encoded}
+
+	encodedFrontend, err := json.Marshal(frontendMsg)
+
+	FrontendToABTU1 <- encodedFrontend
 
 	go func() {
 		for {
@@ -138,6 +143,6 @@ func TestABTU2Instances(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(20*time.Second)
+	time.Sleep(3*time.Second)
 
-}*/
+}

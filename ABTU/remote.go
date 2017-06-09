@@ -9,7 +9,7 @@ import (
 
 // Executes remotethread algorithm with remoteOperation and returns the operation to execute locally.
 // Returns the resulting history buffer and local timestamp SV without affecting abtu.h and abtu.sv
-func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []Operation, Timestamp){
+func (abtu *ABTUInstance) remoteThread(remoteOperation Operation) (Operation, []Operation, Timestamp){
 	remoteOp := DeepCopyOperation(remoteOperation)
 	H := DeepCopyOperations(abtu.h)
 	SV := DeepCopyTimestamp(abtu.sv)
@@ -52,7 +52,7 @@ func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []
 		}
 	}
 
-	toExecuteLocallyOp, H := IntegrateR(remoteOp, H)
+	toExecuteLocallyOp, H := integrateR(remoteOp, H)
 
 	SV.Increment(remoteOp.Id())
 
@@ -61,7 +61,7 @@ func (abtu *ABTUInstance) RemoteThread(remoteOperation Operation) (Operation, []
 
 // Executes integrateR algortithm, does not modify toIntegrateRemoteOp
 // Returns the operation to integrate (only if type!=UNIT) and the updated history buffer.
-func IntegrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation) (Operation, []Operation) {
+func integrateR(toIntegrateRemoteOperation Operation, historyBuffer []Operation) (Operation, []Operation) {
 	toIntegrateRemoteOp := DeepCopyOperation(toIntegrateRemoteOperation)
 	H := historyBuffer
 

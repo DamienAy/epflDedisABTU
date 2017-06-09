@@ -5,70 +5,124 @@ import (
 	"log"
 )
 
+func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
+	var t1 Timestamp = NewTimestamp(3)
+	t1.Increment(0)
+	t1.Increment(1)
+	t1.Increment(1)
+	t1.Increment(2)
+	t1.Increment(2)
+	t1.Increment(2)
 
-func TestTheStruct(t *testing.T) {
-	t1 := NewTimestamp(3)
-	log.Println(t1.Size())
-	s := t1.Size()
-	s++
-	log.Println("lol")
-	log.Println(t1.Size())
-}
-/*func TestHappenedBeforeReturnsFalseWithIdenticalTimestamps(t *testing.T) {
-	var t1 Timestamp = [3]int{1, 2, 3}
-	var t2 Timestamp = [3]int{1, 2, 3}
+	var t2 Timestamp = NewTimestamp(3)
+	t2.Increment(0)
+	t2.Increment(1)
+	t2.Increment(1)
+	t2.Increment(2)
+	t2.Increment(2)
+	t2.Increment(2)
 
-	if t1.HappenedBefore(t2) {
+	test, _ := t1.HappenedBefore(t2)
+	if test {
 		t.Error("Expected false")
 	}
 }
 
 func TestHappenedBeforeReturnsCorrectlyWithDifferentTimestamps(t *testing.T) {
-	var t1 Timestamp = [3]int{1, 2, 3}
-	var t2 Timestamp = [3]int{4, 2, 3}
-	var t3 Timestamp = [3]int{1, 4, 3}
+	var t1 Timestamp = NewTimestamp(3)
+	t1.Increment(0)
+	t1.Increment(1)
+	t1.Increment(1)
+	t1.Increment(2)
+	t1.Increment(2)
+	t1.Increment(2)
 
+	var t2 Timestamp = NewTimestamp(3)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(1)
+	t2.Increment(1)
+	t2.Increment(2)
+	t2.Increment(2)
+	t2.Increment(2)
 
-	if !t1.HappenedBefore(t2) {
+	var t3 Timestamp = NewTimestamp(3)
+	t3.Increment(1)
+	t3.Increment(2)
+	t3.Increment(2)
+	t3.Increment(2)
+	t3.Increment(2)
+	t3.Increment(3)
+	t3.Increment(3)
+	t3.Increment(3)
+
+	test, _ := t1.HappenedBefore(t2)
+	if !test {
 		t.Error("Timestamp t1 happens before t2.")
 	}
-
-	if t2.HappenedBefore(t1){
+	test, _ = t2.HappenedBefore(t1)
+	if test {
 		t.Error("Timestamp t1 happens before t2.")
 	}
-
-	if t2.HappenedBefore(t3) || t3.HappenedBefore(t2) {
+	test, _= t2.HappenedBefore(t3)
+	test2, _:= t3.HappenedBefore(t2)
+	if test || test2 {
 		t.Error("Timestamp t2 and t3 are concurrent.")
 	}
 }
 
-func TestIncrementWorks(t *testing.T) {
-	var t1 Timestamp = [3]int{1, 2, 3}
-	var t2 Timestamp = [3]int{2, 2, 3}
-
-	t1.Increment(0)
-
-	if t1 != t2 {
-		t.Error("Increment should increment at index i.")
-	}
-}
-
 func TestIsContainedInShouldReturnCorrectly(t *testing.T) {
-	var t1 Timestamp = [3]int{1, 2, 3}
-	var t2 Timestamp = [3]int{4, 2, 3}
-	var t3 Timestamp = [3]int{1, 4, 3}
-	var t4 Timestamp = [3]int{1, 1, 3}
+	var t1 Timestamp = NewTimestamp(3)
+	t1.Increment(0)
+	t1.Increment(1)
+	t1.Increment(1)
+	t1.Increment(2)
+	t1.Increment(2)
+	t1.Increment(2)
 
+	var t2 Timestamp = NewTimestamp(3)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(0)
+	t2.Increment(1)
+	t2.Increment(1)
+	t2.Increment(2)
+	t2.Increment(2)
+	t2.Increment(2)
+
+	var t3 Timestamp = NewTimestamp(3)
+	t3.Increment(0)
+	t3.Increment(1)
+	t3.Increment(1)
+	t3.Increment(1)
+	t3.Increment(1)
+	t3.Increment(2)
+	t3.Increment(2)
+	t3.Increment(2)
+
+	var t4 Timestamp = NewTimestamp(2)
+	t4.Increment(0)
+	t4.Increment(1)
+	t4.Increment(2)
+	t4.Increment(2)
+	t4.Increment(2)
 
 	tSlice := []Timestamp{t1, t2, t3}
 
-	if !t1.IsContainedIn(tSlice) || !t2.IsContainedIn(tSlice){
+	test1, _ := t1.IsContainedIn(tSlice)
+	test2, _:= t2.IsContainedIn(tSlice)
+
+	if !test1 || !test2{
 		t.Error("IsContainedIn Should Return True When Timestamp Contained")
 	}
 
-	if t4.IsContainedIn(tSlice) {
+	test, _ := t4.IsContainedIn(tSlice)
+	if test {
 		t.Error("IsContainedIn Should return false when timestamp not contained in.")
 	}
 
 
-}*/
+}

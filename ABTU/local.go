@@ -8,7 +8,7 @@ import (
 )
 
 // Executes local thread algorithm, does not make any changes to localOperation
-func (abtu *ABTUInstance) LocalThread(localOperation Operation) Operation {
+func (abtu *ABTUInstance) localThread(localOperation Operation) Operation {
 	localOp := DeepCopyOperation(localOperation)
 
 	abtu.sv.Increment(abtu.id)
@@ -16,11 +16,11 @@ func (abtu *ABTUInstance) LocalThread(localOperation Operation) Operation {
 
 	localOp.AddV(abtu.sv)
 
-	return abtu.IntegrateL(localOp)
+	return abtu.integrateL(localOp)
 }
 
 // Decodes local undo operation from toUndo, and executes local thread algorithm.
-func (abtu *ABTUInstance) LocalThreadUndo(toUndo int32) Operation {
+func (abtu *ABTUInstance) localThreadUndo(toUndo int32) Operation {
 	toUndoTimestamp := abtu.localTimestampHistory[len(abtu.localTimestampHistory) - int(toUndo)]
 
 	// Need to find undo op in H
@@ -57,13 +57,13 @@ func (abtu *ABTUInstance) LocalThreadUndo(toUndo int32) Operation {
 		//Need to find undo op in H
 		toUndoOp.AddUv(abtu.sv)
 
-		return abtu.IntegrateL(undoOp)
+		return abtu.integrateL(undoOp)
 	}
 }
 
-// Executes IntegrateL algorithm: integrate toIntegrateOp into the history buffer and updates all timestamps and positions.
+// Executes integrateL algorithm: integrate toIntegrateOp into the history buffer and updates all timestamps and positions.
 // Does not make any changes on toIntegrateOp.
-func (abtu *ABTUInstance) IntegrateL(toIntegrateOp Operation) Operation {
+func (abtu *ABTUInstance) integrateL(toIntegrateOp Operation) Operation {
 	localOp := DeepCopyOperation(toIntegrateOp)
 
 	k := len(abtu.h)

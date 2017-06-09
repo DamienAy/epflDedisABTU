@@ -5,14 +5,14 @@ import (
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/operation"
-	"github.com/DamienAy/epflDedisABTU/management/document"
+	"github.com/DamienAy/epflDedisABTU/Management/document"
 	"log"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"encoding/json"
 	"strconv"
 	"path/filepath"
-	"github.com/DamienAy/epflDedisABTU/management/peerCommunication"
+	"github.com/DamienAy/epflDedisABTU/Management/peerCommunication"
 	"fmt"
 	"flag"
 )
@@ -20,7 +20,7 @@ import (
 const (
 	defaultListenPort = 5050
 	maxMessageSize = 1024
-	defaultFrontendPath = "/Users/knikitin/projects/peer-to-peer-doc-editing"
+	defaultFrontendPath = "C:/Users/Damien/Documents/EPFL/BA6/Project/frontend/peer-to-peer-doc-editing"
 )
 
 

@@ -6,25 +6,24 @@ import (
 	"log"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/timestamp"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/singleTypes"
-	. "github.com/DamienAy/epflDedisABTU/ABTU/remoteBufferManager"
+	. "github.com/DamienAy/epflDedisABTU/ABTU/receivingBufferManager"
 	"errors"
 	"encoding/json"
 	. "github.com/DamienAy/epflDedisABTU/ABTU/encoding"
 )
 
 type ABTUInstance struct {
-	id SiteId
-	sv Timestamp // site timestamp
-	h []Operation // history buffer, sorted in effect relation order
-	localTimestampHistory []Timestamp // buffer storing timestamps of operations generated locally.
-	rbm RemoteBufferManager // receiving buffer for remote operations
-	lh []Operation // history of local operations for undo.
+	id                    SiteId
+	sv                    Timestamp              // site timestamp
+	h                     []Operation            // history buffer, sorted in effect relation order
+	localTimestampHistory []Timestamp            // buffer storing timestamps of operations generated locally.
+	rbm                   ReceivingBufferManager // receiving buffer for remote operations
 
-	lIn chan []byte // channel for receiving from local frontend
-	lOut chan []byte // channel for sending to local frontend
+	localToABTU chan []byte // channel for receiving from local frontend
+	aBTUToLocal chan []byte // channel for sending to local frontend
 
-	rIn chan []byte // channel for receiving remote operations
-	rOut chan []byte // channel for dispatching local operations to remote sites.
+	remoteToABTU chan []byte // channel for receiving remote operations
+	aBTUToRemote chan []byte // channel for dispatching local operations to remote sites.
 }
 
 // Initializes the ABTUInstance abtu.
@@ -38,18 +37,18 @@ func Init(id SiteId, sv Timestamp, h []Operation, rb []Operation) *ABTUInstance 
 
 	abtu.rbm.Start(rb)
 
-	abtu.lIn = make(chan []byte, 20)
-	abtu.lOut = make(chan []byte, 20)
+	abtu.localToABTU = make(chan []byte, 20)
+	abtu.aBTUToLocal = make(chan []byte, 20)
 
-	abtu.rIn = make(chan []byte, 20)
-	abtu.rOut = make(chan []byte, 20)
+	abtu.remoteToABTU = make(chan []byte, 20)
+	abtu.aBTUToRemote = make(chan []byte, 20)
 
 	return abtu
 }
 
 func (abtu *ABTUInstance) Run() (chan<- []byte, <-chan []byte, chan<- []byte, <-chan []byte){
 	go abtu.run()
-	return abtu.lIn, abtu.lOut, abtu.rIn, abtu.rOut
+	return abtu.localToABTU, abtu.aBTUToLocal, abtu.remoteToABTU, abtu.aBTUToRemote
 }
 
 func (abtu *ABTUInstance) Stop(){
@@ -68,7 +67,7 @@ func (abtu *ABTUInstance) listenToRemote() {
 
 	for ;more ; {
 		select {
-		case bytes, more = <- abtu.rIn:
+		case bytes, more = <- abtu.remoteToABTU:
 			if more {
 				remoteOp, err := DecodeFromPeers(bytes)
 				if err!=nil {
@@ -88,16 +87,17 @@ func (abtu *ABTUInstance) listenToRemote() {
 func (abtu *ABTUInstance) launchController() {
 	for {
 		select {
-		case bytes :=  <- abtu.lIn:
+		case bytes :=  <- abtu.localToABTU:
 			abtu.handleFrontendMessage(bytes)
 		default:
-			causallyReadyOperationChannel := make(chan Operation)
+			// Channel with buffer of size 1, in order not to lock rbm.
+			causallyReadyOperationChannel := make(chan Operation, 1)
 			abtu.rbm.Get <- GetCausallyReadyOp{abtu.sv, causallyReadyOperationChannel}
 
 			select {
 			case causallyReadyOp := <- causallyReadyOperationChannel:
 				abtu.handleCausallyReadyOperation(causallyReadyOp)
-			case bytes := <- abtu.lIn:
+			case bytes := <- abtu.localToABTU:
 				abtu.handleFrontendMessage(bytes)
 			}
 		}
@@ -127,7 +127,7 @@ func (abtu *ABTUInstance) handleLocalOperation(bytes []byte) {
 		log.Fatal(errors.New("Cannot decode local operation: " + err.Error()))
 	}
 
-	toDispatchOp := abtu.LocalThread(localOp)
+	toDispatchOp := abtu.localThread(localOp)
 
 	ackToSendFrontend, err := json.Marshal(FrontendMessage{AckLocalOp, []byte{}})
 	if err != nil {
@@ -135,14 +135,14 @@ func (abtu *ABTUInstance) handleLocalOperation(bytes []byte) {
 	}
 
 	// Execute locally
-	abtu.lOut <- ackToSendFrontend
+	abtu.aBTUToLocal <- ackToSendFrontend
 
 	bytesToDispatch, err := toDispatchOp.EncodeToPeers()
 	if err != nil {
-		log.Fatal(errors.New("Cannot send operation to rOut:" + err.Error()))
+		log.Fatal(errors.New("Cannot send operation to aBTUToRemote:" + err.Error()))
 	}
 
-	abtu.rOut <- bytesToDispatch
+	abtu.aBTUToRemote <- bytesToDispatch
 }
 
 func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
@@ -152,7 +152,7 @@ func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
 		log.Fatal(errors.New("Cannot decode local undo: " + err.Error()))
 	}
 
-	toExecuteOp := abtu.LocalThreadUndo(toUndo)
+	toExecuteOp := abtu.localThreadUndo(toUndo)
 
 
 	if toExecuteOp.OpType() == UNIT {
@@ -161,7 +161,7 @@ func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
 			log.Fatal(errors.New("Cannot encode nacklocalundo: " + err.Error()))
 		}
 
-		abtu.lOut <- nackLocalUndo
+		abtu.aBTUToLocal <- nackLocalUndo
 	} else {
 		undoFrontendOp, err := json.Marshal(OperationToFrontendOperation(toExecuteOp))
 		if err != nil {
@@ -174,20 +174,20 @@ func (abtu *ABTUInstance) handleLocalUndo(bytes []byte) {
 		}
 
 		// Execute locally
-		abtu.lOut <- ackLocalUndo
+		abtu.aBTUToLocal <- ackLocalUndo
 
 		toDispatchOp, err := toExecuteOp.EncodeToPeers()
 		if err != nil {
-			log.Fatal(errors.New("Cannot send operation to rOut:" + err.Error()))
+			log.Fatal(errors.New("Cannot send operation to aBTUToRemote:" + err.Error()))
 		}
 
 		// Dispatch to other peers
-		abtu.rOut <- toDispatchOp
+		abtu.aBTUToRemote <- toDispatchOp
 	}
 }
 
 func (abtu *ABTUInstance) handleCausallyReadyOperation(causallyReadyOp Operation){
-	toExecuteOp, h, sv := abtu.RemoteThread(causallyReadyOp)
+	toExecuteOp, h, sv := abtu.remoteThread(causallyReadyOp)
 
 	if toExecuteOp.OpType() != UNIT {
 		frontendOp, err := json.Marshal(OperationToFrontendOperation(toExecuteOp))
@@ -201,9 +201,9 @@ func (abtu *ABTUInstance) handleCausallyReadyOperation(causallyReadyOp Operation
 		}
 
 		// Execute locally
-		abtu.lOut <- remoteOperation
+		abtu.aBTUToLocal <- remoteOperation
 
-		frontendBytes := <- abtu.lIn
+		frontendBytes := <- abtu.localToABTU
 
 		var frontendMsg FrontendMessage
 		err = json.Unmarshal(frontendBytes, &frontendMsg)
