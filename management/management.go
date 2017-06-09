@@ -47,11 +47,11 @@ func NewManagement() *Management {
 /* Message type to communicate with the front-end and other peers*/
 type collaborationMessage struct {
 	Event string `json:"Event"`
-	Content []byte `json:"Content"`
+	Content string `json:"Content"`
 }
 
 /* A function returning a new instance of collaborationMessage */
-func newCollaborationMessage(event string, content []byte) *collaborationMessage {
+func newCollaborationMessage(event string, content string) *collaborationMessage {
 	msg := &collaborationMessage{
 		Event: event,
 		Content: content,
@@ -71,7 +71,7 @@ func (mgmt *Management) handleFrontendMessage(received []byte) {
 
 	switch cm.Event {
 	case "ABTU":
-		mgmt.doc.FrontendToABTU <- cm.Content
+		mgmt.doc.FrontendToABTU <- []byte(cm.Content)
 	case "AccessControl":
 	//	TODO Handle access control messages
 	case "Cursor":
@@ -92,7 +92,7 @@ func (mgmt *Management) handlePeersMessage(received []byte) {
 
 	switch cm.Event {
 	case "ABTU":
-		mgmt.doc.PeersToABTU <- cm.Content
+		mgmt.doc.PeersToABTU <- []byte(cm.Content)
 	case "AccessControl":
 	//	TODO Handle access control messages
 	case "Cursor":
@@ -113,9 +113,9 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 	go func() {
 		// Testing
 		time.Sleep(4)
-		test := newCollaborationMessage("ABTU", []byte(`{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`))
+		test := newCollaborationMessage("ABTU", `{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`)
 		out, _ := json.Marshal(test)
-		//fmt.Println(out)
+		fmt.Println(string(out))
 		ws.WriteMessage(2, out)
 		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
@@ -124,7 +124,7 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 
 	for {
 		_, m2read, err := ws.ReadMessage()
-		log.Println(m2read, "in websocker listening")
+		log.Println("Received from Frontend:", m2read)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
@@ -221,7 +221,7 @@ func (mgmt *Management) Run() {
 
 		case received := <- mgmt.doc.ABTUToFrontend:
 			log.Println(received, "from ABTUtoFrontend")
-			cm := newCollaborationMessage("ABTU", received)
+			cm := newCollaborationMessage("ABTU", string(received))
 			message, err := json.Marshal(cm)
 			if err != nil {
 				log.Println("Error during json marshalling:", err)
@@ -234,7 +234,7 @@ func (mgmt *Management) Run() {
 
 		case received := <- mgmt.doc.ABTUToPeers:
 			log.Println(received, "from ABTUToPeers")
-			cm := newCollaborationMessage("ABTU", received)
+			cm := newCollaborationMessage("ABTU", string(received))
 			message, err := json.Marshal(cm)
 			if err != nil {
 				log.Println("Error during json marshalling:", err)
