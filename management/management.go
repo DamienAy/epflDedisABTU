@@ -21,7 +21,7 @@ import (
 const (
 	defaultListenPort = 5050
 	maxMessageSize = 1024
-	defaultFrontendPath = "C:/Users/Damien/Documents/EPFL/BA6/Project/frontend/peer-to-peer-doc-editing"
+	defaultFrontendPath = "/Users/knikitin/projects/peer-to-peer-doc-editing"
 )
 
 
@@ -47,11 +47,11 @@ func NewManagement() *Management {
 /* Message type to communicate with the front-end and other peers*/
 type collaborationMessage struct {
 	Event string `json:"Event"`
-	Content []byte `json:"Content"`
+	Content json.RawMessage `json:"Content"`
 }
 
 /* A function returning a new instance of collaborationMessage */
-func newCollaborationMessage(event string, content []byte) *collaborationMessage {
+func newCollaborationMessage(event string, content json.RawMessage) *collaborationMessage {
 	msg := &collaborationMessage{
 		Event: event,
 		Content: content,
@@ -71,7 +71,9 @@ func (mgmt *Management) handleFrontendMessage(received []byte) {
 
 	switch cm.Event {
 	case "ABTU":
-		mgmt.doc.FrontendToABTU <- cm.Content
+		log.Println("cm.Content:", string(cm.Content))
+		mgmt.doc.FrontendToABTU <- []byte(cm.Content)
+		fmt.Println("Passed!")
 	case "AccessControl":
 	//	TODO Handle access control messages
 	case "Cursor":
@@ -92,7 +94,7 @@ func (mgmt *Management) handlePeersMessage(received []byte) {
 
 	switch cm.Event {
 	case "ABTU":
-		mgmt.doc.PeersToABTU <- cm.Content
+		mgmt.doc.PeersToABTU <- []byte(cm.Content)
 	case "AccessControl":
 	//	TODO Handle access control messages
 	case "Cursor":
@@ -113,9 +115,11 @@ func serveWS(mgmt *Management, w http.ResponseWriter, r *http.Request) {
 	go func() {
 		// Testing
 		time.Sleep(4)
-		test := newCollaborationMessage("ABTU", []byte(`{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`))
+		test := newCollaborationMessage("ABTU", json.RawMessage(`{"Type":"remoteOperation","Content":{"OpType":0,"Character":[97],"Position":0}}`))
+		//fmt.Println(test)
 		out, _ := json.Marshal(test)
-		//fmt.Println(out)
+		fmt.Println("Test message from management:", string(out))
+		//fmt.Println("out:", out)
 		ws.WriteMessage(2, out)
 		m2write := <- mgmt.doc.MgmtToFrontend
 		// BinaryMessage =2 denotes a binary data message
