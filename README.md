@@ -1,4 +1,4 @@
-# epflDedisABTU
+# Implementation of an Algorithm for Peer-to-Peer Collaborative Editing
 
 Detailed information about the project can be found in the report.pdf file.
 
